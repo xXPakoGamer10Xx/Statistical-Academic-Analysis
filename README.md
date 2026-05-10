@@ -132,7 +132,3 @@ cd frontend && npm run test
 - Rate-limit 120 req/min por IP (configurable).
 - CORS estricto por lista blanca.
 - Pydantic valida todos los inputs.
-
-## Créditos
-
-Proyecto desarrollado por **José Eduardo Colmenero López** y **Emiliano León Sánchez** bajo la asesoría de **Octavio Rodríguez Muñoz** (Marzo–Agosto 2026).
