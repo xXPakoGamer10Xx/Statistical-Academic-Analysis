@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reporte Institucional - {{ seccion|title }}</title>
+<style>
+  @page { size: A4; margin: 1.5cm; }
+  body { font-family: 'Helvetica', sans-serif; color: #222; font-size: 11px; }
+  header { border-bottom: 2px solid #1e3a8a; padding-bottom: 8px; margin-bottom: 16px; }
+  h1 { color: #1e3a8a; margin: 0; font-size: 18px; }
+  h2 { color: #1e40af; font-size: 14px; margin-top: 18px; border-left: 4px solid #1e40af; padding-left: 8px; }
+  .meta { color: #555; font-size: 10px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { background: #1e40af; color: #fff; padding: 6px; text-align: left; font-size: 10px; }
+  td { padding: 5px 6px; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .summary { display: flex; gap: 12px; margin: 8px 0; }
+  .card { flex: 1; background: #f3f4f6; padding: 10px; border-radius: 6px; }
+  .card .label { font-size: 9px; color: #6b7280; text-transform: uppercase; }
+  .card .value { font-size: 18px; font-weight: bold; color: #1e3a8a; }
+  footer { margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 8px; font-size: 9px; color: #6b7280; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Reporte Institucional — {{ seccion|title }}</h1>
+  <div class="meta">Generado el {{ fecha }} por {{ usuario }} · Ciclo: {{ ciclo_escolar }}</div>
+</header>
+
+{% if matricula %}
+<h2>Matrícula</h2>
+<div class="summary">
+  <div class="card"><div class="label">Matrícula Actual</div><div class="value">{{ matricula.total_actual }}</div></div>
+  <div class="card"><div class="label">Nuevo Ingreso</div><div class="value">{{ matricula.total_nuevo_ingreso }}</div></div>
+  <div class="card"><div class="label">Hombres</div><div class="value">{{ matricula.distribucion_genero.hombres }}</div></div>
+  <div class="card"><div class="label">Mujeres</div><div class="value">{{ matricula.distribucion_genero.mujeres }}</div></div>
+</div>
+<table>
+  <thead><tr><th>Ciclo</th><th>Cuatri</th><th>Programa</th><th>Matrícula</th><th>Nuevo</th><th>H</th><th>M</th></tr></thead>
+  <tbody>
+  {% for p in matricula.series %}
+    <tr><td>{{ p.ciclo_escolar }}</td><td>{{ p.cuatrimestre }}</td><td>{{ p.programa_educativo }}</td>
+    <td>{{ p.matricula_actual }}</td><td>{{ p.nuevo_ingreso }}</td><td>{{ p.hombres }}</td><td>{{ p.mujeres }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if rendimiento %}
+<h2>Rendimiento Académico</h2>
+<table>
+  <thead><tr><th>Ciclo</th><th>Programa</th><th>Aprovech.</th><th>Reprob. %</th><th>Deserción %</th></tr></thead>
+  <tbody>
+  {% for a in rendimiento.aprovechamiento %}
+    <tr>
+      <td>{{ a.ciclo_escolar }}</td>
+      <td>{{ a.programa_educativo }}</td>
+      <td>{{ "%.2f"|format(a.valor) }}</td>
+      <td>
+        {% for r in rendimiento.reprobacion if r.ciclo_escolar==a.ciclo_escolar and r.programa_educativo==a.programa_educativo %}
+          {{ "%.2f"|format(r.valor) }}
+        {% endfor %}
+      </td>
+      <td>
+        {% for d in rendimiento.desercion if d.ciclo_escolar==a.ciclo_escolar and d.programa_educativo==a.programa_educativo %}
+          {{ "%.2f"|format(d.valor) }}
+        {% endfor %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if eficiencia %}
+<h2>Eficiencia Terminal y Titulación</h2>
+<table>
+  <thead><tr><th>Generación</th><th>Programa</th><th>Ef. Terminal %</th><th>Titulación %</th><th>Egresados</th><th>Titulados</th></tr></thead>
+  <tbody>
+  {% for e in eficiencia.generaciones %}
+    <tr><td>{{ e.generacion }}</td><td>{{ e.programa_educativo }}</td>
+    <td>{{ "%.2f"|format(e.eficiencia_terminal) }}</td>
+    <td>{{ "%.2f"|format(e.indice_titulacion) }}</td>
+    <td>{{ e.egresados }}</td><td>{{ e.titulados }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if docentes %}
+<h2>Evaluación Docente</h2>
+<table>
+  <thead><tr><th>Ciclo</th><th>Docente</th><th>Programa</th><th>Prom. Alumnos</th><th>Prom. Directivos</th></tr></thead>
+  <tbody>
+  {% for d in docentes.docentes %}
+    <tr><td>{{ d.ciclo_escolar }}</td><td>{{ d.docente_nombre }}</td><td>{{ d.programa_educativo }}</td>
+    <td>{% if d.promedio_alumnos %}{{ "%.2f"|format(d.promedio_alumnos) }}{% else %}—{% endif %}</td>
+    <td>{% if d.promedio_directivos %}{{ "%.2f"|format(d.promedio_directivos) }}{% else %}—{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<footer>Plataforma de Análisis Estadístico Académico — Documento generado automáticamente.</footer>
+</body>
+</html>
