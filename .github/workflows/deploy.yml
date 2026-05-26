@@ -1,0 +1,37 @@
+name: Deploy académico en automático (Self-Hosted)
+
+on:
+  push:
+    branches:
+      - main  # Se ejecuta automáticamente al hacer push a la rama main
+
+jobs:
+  deploy:
+    name: Desplegar en Servidor Local
+    runs-on: self-hosted  # Utiliza tu servidor local configurado como GitHub Runner
+
+    steps:
+      - name: Actualizar código en el directorio del proyecto
+        run: |
+          # NOTA: Cambia esta ruta si tu proyecto está en otra ubicación del servidor
+          PROJECT_DIR="/home/server/Statistical-Academic-Analysis"
+          
+          echo "Navegando al directorio del proyecto: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          
+          echo "Trayendo los últimos cambios de GitHub..."
+          git fetch origin
+          
+          echo "Restableciendo el código local a la versión de GitHub (main)..."
+          git reset --hard origin/main
+
+      - name: Iniciar servicios con Docker Compose
+        run: |
+          PROJECT_DIR="/home/server/Statistical-Academic-Analysis"
+          cd "$PROJECT_DIR"
+          
+          echo "Otorgando permisos de ejecución a start.sh..."
+          chmod +x start.sh
+          
+          echo "Ejecutando script de producción start.sh..."
+          ./start.sh
