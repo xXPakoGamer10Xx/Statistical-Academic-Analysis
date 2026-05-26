@@ -14,7 +14,7 @@ interface FormState {
   email: string;
   full_name: string;
   password: string;
-  role: "admin" | "usuario";
+  role: "admin" | "usuario" | "directivo";
   subsistema_id: number | null;
 }
 

@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
 import { indicadoresApi, reportsApi } from "@/api/endpoints";
 import { BarChart } from "@/components/charts/BarChart";
 import { FilterBar } from "@/components/filters/FilterBar";
-import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ExportMenu } from "@/components/ui/ExportMenu";
 import { useFiltersStore } from "@/stores/filters";
