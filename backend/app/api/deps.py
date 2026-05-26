@@ -54,4 +54,26 @@ async def require_admin(current_user: CurrentUser) -> User:
     return current_user
 
 
+async def require_staff(current_user: CurrentUser) -> User:
+    """Permite admin y directivo (lectura de datos e indicadores)."""
+    if current_user.role not in ("admin", "directivo"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Se requiere rol de administrador o directivo",
+        )
+    return current_user
+
+
+async def require_directivo(current_user: CurrentUser) -> User:
+    """Solo directivo (audit log, gestión de admins)."""
+    if current_user.role != "directivo":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Se requiere rol de directivo",
+        )
+    return current_user
+
+
 AdminUser = Annotated[User, Depends(require_admin)]
+StaffUser = Annotated[User, Depends(require_staff)]
+DirectivoUser = Annotated[User, Depends(require_directivo)]

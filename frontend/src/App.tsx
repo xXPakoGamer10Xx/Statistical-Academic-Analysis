@@ -8,6 +8,7 @@ import { Eficiencia } from "@/pages/Eficiencia";
 import { Login } from "@/pages/Login";
 import { Matricula } from "@/pages/Matricula";
 import { Rendimiento } from "@/pages/Rendimiento";
+import { AuditLog } from "@/pages/admin/AuditLog";
 import { Usuarios } from "@/pages/admin/Usuarios";
 
 export function App() {
@@ -21,9 +22,17 @@ export function App() {
           <Route path="rendimiento" element={<Rendimiento />} />
           <Route path="eficiencia" element={<Eficiencia />} />
           <Route path="docentes" element={<Docentes />} />
-          <Route element={<ProtectedRoute adminOnly />}>
+          {/* Solo admin puede subir archivos */}
+          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="cargas" element={<Cargas />} />
+          </Route>
+          {/* Admin y directivo gestionan usuarios */}
+          <Route element={<ProtectedRoute allowedRoles={["admin", "directivo"]} />}>
             <Route path="admin/usuarios" element={<Usuarios />} />
+          </Route>
+          {/* Solo directivo ve la bitácora */}
+          <Route element={<ProtectedRoute allowedRoles={["directivo"]} />}>
+            <Route path="admin/auditoria" element={<AuditLog />} />
           </Route>
         </Route>
       </Route>

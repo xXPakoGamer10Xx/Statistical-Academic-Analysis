@@ -8,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.api.routes import (
+    audit,
     auth,
     docentes,
     eficiencia,
@@ -71,3 +72,4 @@ app.include_router(eficiencia.router, prefix=f"{prefix}/eficiencia", tags=["efic
 app.include_router(docentes.router, prefix=f"{prefix}/docentes", tags=["docentes"])
 app.include_router(reports.router, prefix=f"{prefix}/reports", tags=["reports"])
 app.include_router(templates.router, prefix=f"{prefix}/templates", tags=["templates"])
+app.include_router(audit.router, prefix=f"{prefix}/audit-logs", tags=["audit"])

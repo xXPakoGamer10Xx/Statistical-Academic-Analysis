@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 
 from app.api.deps import AdminUser, DbDep
+from app.services.audit import log_action
 from app.core.config import settings
 from app.models.upload_job import UploadJob
 from app.schemas.upload import DatasetType, UploadJobOut
@@ -61,6 +62,19 @@ async def upload_csv(
     await db.refresh(job)
 
     process_csv_upload.delay(str(job_id))
+    await log_action(
+        db,
+        admin.id,
+        "upload",
+        target_type="upload",
+        target_id=str(job_id),
+        details={
+            "dataset_type": dataset_type,
+            "subsistema_id": subsistema_id,
+            "filename": file.filename,
+            "size_bytes": len(contents),
+        },
+    )
     return job
 
 

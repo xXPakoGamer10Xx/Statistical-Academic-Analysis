@@ -1,17 +1,19 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Image } from "lucide-react";
-import { useState } from "react";
 import { indicadoresApi, reportsApi } from "@/api/endpoints";
 import { BarChart } from "@/components/charts/BarChart";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { ExportMenu } from "@/components/ui/ExportMenu";
 import { useFiltersStore } from "@/stores/filters";
 import { cn } from "@/lib/utils";
 
 export function Eficiencia() {
   const filters = useFiltersStore();
+
   const [genInput, setGenInput] = useState("");
   const generaciones = genInput
     .split(",")
@@ -36,14 +38,11 @@ export function Eficiencia() {
           <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">Comparativa hasta 3 generaciones egresadas</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="secondary" size="sm" onClick={() => reportsApi.downloadImage("eficiencia", "charts-eficiencia")}>
-            <Image className="mr-2 h-4 w-4" />
-            Imagen
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => reportsApi.downloadPdf("eficiencia", filters)}>
-            <Download className="mr-2 h-4 w-4" />
-            PDF
-          </Button>
+          <ExportMenu 
+            onExportHistorical={() => reportsApi.downloadPdf("eficiencia", filters)}
+            onExportPdf={() => reportsApi.downloadImagePdf("eficiencia", "charts-eficiencia", filters)}
+            onExportImage={() => reportsApi.downloadImage("eficiencia", "charts-eficiencia", filters)}
+          />
         </div>
       </div>
 

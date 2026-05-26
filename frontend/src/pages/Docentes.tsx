@@ -5,10 +5,12 @@ import { BarChart } from "@/components/charts/BarChart";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { ExportMenu } from "@/components/ui/ExportMenu";
 import { useFiltersStore } from "@/stores/filters";
 
 export function Docentes() {
   const filters = useFiltersStore();
+
   const { data } = useQuery({
     queryKey: ["docentes", filters],
     queryFn: () => indicadoresApi.docentes(filters),
@@ -20,16 +22,17 @@ export function Docentes() {
   const directivos = docentes.map((d) => d.promedio_directivos ?? 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="dashboard-docentes">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Evaluación Docente</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Comparativa de evaluaciones por alumnos y directivos</p>
         </div>
-        <Button variant="secondary" onClick={() => reportsApi.downloadPdf("docentes", filters)}>
-          <Download className="mr-2 h-4 w-4" />
-          Exportar PDF
-        </Button>
+        <ExportMenu
+          onExportHistorical={() => reportsApi.downloadPdf("docentes", filters)}
+          onExportPdf={() => reportsApi.downloadImagePdf("docentes", "charts-docentes", filters)}
+          onExportImage={() => reportsApi.downloadImage("docentes", "charts-docentes", filters)}
+        />
       </div>
 
       <FilterBar showCuatrimestre={false} />
@@ -41,8 +44,9 @@ export function Docentes() {
         </div>
       )}
 
-      <Card>
-        <CardHeader><CardTitle>Promedios comparados</CardTitle></CardHeader>
+      <div id="charts-docentes" className="space-y-6">
+        <Card>
+          <CardHeader><CardTitle>Promedios comparados</CardTitle></CardHeader>
         <CardContent>
           <BarChart
             categories={cats}
@@ -82,6 +86,7 @@ export function Docentes() {
           </table>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

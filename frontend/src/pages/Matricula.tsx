@@ -8,10 +8,13 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
+import { ExportMenu } from "@/components/ui/ExportMenu";
 import { useFiltersStore } from "@/stores/filters";
 
 export function Matricula() {
   const filters = useFiltersStore();
+
+
   const { data, isLoading } = useQuery({
     queryKey: ["matricula", filters],
     queryFn: () => indicadoresApi.matricula(filters),
@@ -38,14 +41,11 @@ export function Matricula() {
           <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">Indicadores históricos de matrícula institucional</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="secondary" size="sm" onClick={() => reportsApi.downloadImage("matricula", "charts-matricula")}>
-            <Image className="mr-2 h-4 w-4" />
-            Imagen
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => reportsApi.downloadPdf("matricula", filters)}>
-            <Download className="mr-2 h-4 w-4" />
-            PDF
-          </Button>
+          <ExportMenu 
+            onExportHistorical={() => reportsApi.downloadPdf("matricula", filters)}
+            onExportPdf={() => reportsApi.downloadImagePdf("matricula", "charts-matricula", filters)}
+            onExportImage={() => reportsApi.downloadImage("matricula", "charts-matricula", filters)}
+          />
         </div>
       </div>
 

@@ -7,10 +7,13 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
+import { ExportMenu } from "@/components/ui/ExportMenu";
 import { useFiltersStore } from "@/stores/filters";
 
 export function Rendimiento() {
   const filters = useFiltersStore();
+
+
   const { data, isLoading } = useQuery({
     queryKey: ["rendimiento", filters],
     queryFn: () => indicadoresApi.rendimiento(filters),
@@ -53,14 +56,11 @@ export function Rendimiento() {
           <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">Aprovechamiento, reprobación y deserción</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="secondary" size="sm" onClick={() => reportsApi.downloadImage("rendimiento", "charts-rendimiento")}>
-            <Image className="mr-2 h-4 w-4" />
-            Imagen
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => reportsApi.downloadPdf("rendimiento", filters)}>
-            <Download className="mr-2 h-4 w-4" />
-            PDF
-          </Button>
+          <ExportMenu 
+            onExportHistorical={() => reportsApi.downloadPdf("rendimiento", filters)}
+            onExportPdf={() => reportsApi.downloadImagePdf("rendimiento", "charts-rendimiento", filters)}
+            onExportImage={() => reportsApi.downloadImage("rendimiento", "charts-rendimiento", filters)}
+          />
         </div>
       </div>
 

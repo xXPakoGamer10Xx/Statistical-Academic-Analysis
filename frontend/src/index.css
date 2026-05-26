@@ -11,3 +11,8 @@ html, body, #root { height: 100%; }
 body { 
   @apply bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100; 
 }
+
+/* Oculta la flecha nativa que Chrome/Safari añaden a inputs con datalist */
+input::-webkit-calendar-picker-indicator {
+  display: none !important;
+}

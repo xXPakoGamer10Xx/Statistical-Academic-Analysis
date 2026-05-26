@@ -1,29 +1,36 @@
 import { useState, useRef } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  Users, 
-  BarChart3, 
-  GraduationCap, 
-  UserCheck, 
-  Upload, 
-  BookOpen, 
+import {
+  Users,
+  BarChart3,
+  GraduationCap,
+  UserCheck,
+  Upload,
+  BookOpen,
   LogOut,
   Menu,
-  X
+  X,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
+const ROLE_LABELS: Record<string, string> = {
+  directivo: "Directivo",
+  admin: "Administrador",
+  usuario: "Usuario",
+};
+
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/matricula", label: "Matrícula", icon: Users },
-  { to: "/rendimiento", label: "Rendimiento", icon: BookOpen },
-  { to: "/eficiencia", label: "Eficiencia", icon: GraduationCap },
-  { to: "/docentes", label: "Eval. Docente", icon: UserCheck },
-  { to: "/cargas", label: "Cargas", icon: Upload, adminOnly: true },
-  { to: "/admin/usuarios", label: "Usuarios", icon: Users, adminOnly: true },
+  { to: "/", label: "Resumen General", icon: BarChart3, allowedRoles: null },
+  { to: "/matricula", label: "Matrícula", icon: Users, allowedRoles: null },
+  { to: "/rendimiento", label: "Rendimiento", icon: BookOpen, allowedRoles: null },
+  { to: "/eficiencia", label: "Eficiencia", icon: GraduationCap, allowedRoles: null },
+  { to: "/docentes", label: "Eval. Docente", icon: UserCheck, allowedRoles: null },
+  { to: "/cargas", label: "Cargas", icon: Upload, allowedRoles: ["admin"] },
+  { to: "/admin/usuarios", label: "Usuarios", icon: Users, allowedRoles: ["admin", "directivo"] },
+  { to: "/admin/auditoria", label: "Auditoría", icon: ClipboardList, allowedRoles: ["directivo"] },
 ];
 
 export function Layout() {
@@ -32,7 +39,7 @@ export function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const isAdmin = user?.role === "admin";
+  const userRole = user?.role ?? "usuario";
 
   const mainRef = useRef<HTMLDivElement>(null);
   const [isVisibleTop, setIsVisibleTop] = useState(true);
@@ -93,7 +100,7 @@ export function Layout() {
         </div>
       </div>
       <nav className="flex-1 space-y-1 p-4 overflow-y-auto custom-scrollbar">
-        {NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin).map((item) => {
+        {NAV_ITEMS.filter((i) => !i.allowedRoles || i.allowedRoles.includes(userRole)).map((item) => {
           const isActive = item.to === "/" 
             ? location.pathname === "/" 
             : location.pathname.startsWith(item.to);
@@ -183,30 +190,46 @@ export function Layout() {
           <div className="flex items-center gap-2 p-2 rounded-2xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] pointer-events-auto">
             <NavLink
                to="/"
-               className="mr-2 ml-1 flex items-center justify-center relative group isolate"
+               end
+               className={cn(
+                 "mr-1 ml-1 flex items-center justify-center relative group isolate h-10 w-10 rounded-xl transition-all duration-200 hover:scale-110",
+                 dock.key === 'top' ? "hover:-translate-y-1 align-bottom" : "hover:translate-y-1 align-top"
+               )}
                onMouseEnter={() => setHoveredItem(`logo-${dock.key}`)}
                onMouseLeave={() => setHoveredItem(null)}
             >
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-md text-white transition-transform hover:scale-110">
-                <BarChart3 className="h-5 w-5" />
-              </div>
-              <AnimatePresence>
-                {hoveredItem === `logo-${dock.key}` && (
-                  <motion.div
-                    initial={{ opacity: 0, y: dock.key === 'top' ? 10 : -10, scale: 0.8 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: dock.key === 'top' ? 5 : -5, scale: 0.9 }}
-                    className={cn("absolute px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap", dock.key === 'top' ? "top-full mt-3" : "bottom-full mb-3")}
-                  >
-                    Análisis Stats
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {({ isActive }) => (
+                <>
+                  <div className={cn(
+                    "h-10 w-10 rounded-xl flex items-center justify-center shadow-md text-white transition-all",
+                    isActive 
+                      ? "bg-gradient-to-br from-brand-500 to-brand-600 shadow-brand-500/20" 
+                      : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
+                  )}>
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  {isActive && (
+                    <div className={cn("absolute w-1 h-1 rounded-full bg-brand-500 z-10", dock.key === 'top' ? "-bottom-1" : "-top-1")} />
+                  )}
+                  <AnimatePresence>
+                    {hoveredItem === `logo-${dock.key}` && (
+                      <motion.div
+                        initial={{ opacity: 0, y: dock.key === 'top' ? 10 : -10, scale: 0.8 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: dock.key === 'top' ? 5 : -5, scale: 0.9 }}
+                        className={cn("absolute px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50", dock.key === 'top' ? "top-full mt-3" : "bottom-full mb-3")}
+                      >
+                        Resumen General
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
             </NavLink>
 
             <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 mx-1" />
 
-            {NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin).map((item) => {
+            {NAV_ITEMS.filter((i) => i.to !== "/" && (!i.allowedRoles || i.allowedRoles.includes(userRole))).map((item) => {
               const isActive = item.to === "/" 
                 ? location.pathname === "/" 
                 : location.pathname.startsWith(item.to);
@@ -266,7 +289,7 @@ export function Layout() {
                       exit={{ opacity: 0, y: dock.key === 'top' ? 5 : -5, scale: 0.9 }}
                       className={cn("absolute px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap", dock.key === 'top' ? "top-full mt-3" : "bottom-full mb-3")}
                     >
-                      {user?.full_name} ({user?.role})
+                      {user?.full_name} · {ROLE_LABELS[userRole] ?? userRole}
                     </motion.div>
                   )}
                 </AnimatePresence>

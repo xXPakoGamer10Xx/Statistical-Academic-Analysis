@@ -2,10 +2,10 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
-  adminOnly?: boolean;
+  allowedRoles?: string[];
 }
 
-export function ProtectedRoute({ adminOnly = false }: Props) {
+export function ProtectedRoute({ allowedRoles }: Props) {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
@@ -16,6 +16,8 @@ export function ProtectedRoute({ adminOnly = false }: Props) {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (adminOnly && user?.role !== "admin") return <Navigate to="/" replace />;
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
   return <Outlet />;
 }
