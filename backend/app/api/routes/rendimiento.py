@@ -15,7 +15,7 @@ async def get_rendimiento(
     ciclo_escolar: str | None = Query(None),
     programa_educativo: str | None = Query(None),
 ) -> RendimientoResumen:
-    sid = subsistema_id if user.role in ("admin", "directivo") else user.subsistema_id
+    sid = subsistema_id if user.role == "admin_general" else user.subsistema_id
     return await calcular_rendimiento(
         db,
         subsistema_id=sid,
@@ -31,7 +31,7 @@ async def get_opcionales(
     subsistema_id: int | None = Query(None),
     ciclo_escolar: str | None = Query(None),
 ) -> IndicadoresOpcionales:
-    sid = subsistema_id if user.role in ("admin", "directivo") else user.subsistema_id
+    sid = subsistema_id if user.role == "admin_general" else user.subsistema_id
     return await calcular_indicadores_opcionales(
         db, subsistema_id=sid, ciclo_escolar=ciclo_escolar
     )

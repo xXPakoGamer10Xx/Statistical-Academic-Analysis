@@ -14,7 +14,7 @@ from app.models.evaluacion import EvaluacionAcademica, EvaluacionDocente
 from app.models.matricula import Matricula
 from app.models.titulacion import Titulacion
 from app.models.upload_job import UploadJob
-from app.services.csv_processor import parse_and_validate
+from app.services.csv_processor import parse_and_validate_smart
 from app.workers.celery_app import celery_app
 
 # Engine sincrónico para Celery (Celery no juega bien con asyncio por defecto)
@@ -88,7 +88,14 @@ def process_csv_upload(self, job_id: str) -> dict:  # noqa: ARG001 (self requeri
             job.status = "processing"
             session.commit()
 
-            df, errors = parse_and_validate(job.file_path, job.dataset_type)
+            cfg = job.mapping_config or {}
+            df, errors = parse_and_validate_smart(
+                job.file_path,
+                job.dataset_type,
+                sheet_name=cfg.get("sheet_name"),
+                header_row=cfg.get("header_row", 0),
+                column_mapping=cfg.get("column_mapping"),
+            )
             df["subsistema_id"] = job.subsistema_id
 
             dedup_keys = list(DEDUP_KEYS.get(job.dataset_type, []))

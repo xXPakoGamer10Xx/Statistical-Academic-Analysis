@@ -26,7 +26,7 @@ async def main() -> int:
             email=settings.INITIAL_ADMIN_EMAIL.lower(),
             full_name="Administrador",
             password_hash=hash_password(settings.INITIAL_ADMIN_PASSWORD),
-            role="admin",
+            role="admin_general",
             is_active=True,
         )
         db.add(admin)

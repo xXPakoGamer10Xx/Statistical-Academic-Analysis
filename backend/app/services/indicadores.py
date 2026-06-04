@@ -219,6 +219,11 @@ async def calcular_evaluacion_docente(
         bucket = agrupados.setdefault(key, {})
         bucket[r.evaluador_tipo] = float(r.promedio) if r.promedio else 0.0
 
+    def _promedio_general(v: dict[str, float]) -> float | None:
+        # Promedio general por docente = media de los promedios disponibles (alumnos y/o directivos)
+        valores = [v[t] for t in ("alumno", "directivo") if v.get(t) is not None]
+        return round(sum(valores) / len(valores), 2) if valores else None
+
     docentes = [
         EvaluacionDocentePunto(
             ciclo_escolar=k[0],
@@ -227,10 +232,18 @@ async def calcular_evaluacion_docente(
             programa_educativo=k[3],
             promedio_alumnos=v.get("alumno"),
             promedio_directivos=v.get("directivo"),
+            promedio_general=_promedio_general(v),
         )
         for k, v in agrupados.items()
     ]
-    return EvaluacionDocenteResumen(docentes=docentes)
+
+    generales = [d.promedio_general for d in docentes if d.promedio_general is not None]
+    promedio_institucional = round(sum(generales) / len(generales), 2) if generales else None
+
+    return EvaluacionDocenteResumen(
+        docentes=docentes,
+        promedio_institucional=promedio_institucional,
+    )
 
 
 async def calcular_indicadores_opcionales(

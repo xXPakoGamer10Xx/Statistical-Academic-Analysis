@@ -18,7 +18,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     full_name: Mapped[str] = mapped_column(String(150), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="usuario")
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="viewer")
     subsistema_id: Mapped[int | None] = mapped_column(
         ForeignKey("subsistemas.id", ondelete="SET NULL"), nullable=True
     )

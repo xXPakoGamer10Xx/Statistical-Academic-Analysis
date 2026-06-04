@@ -16,7 +16,7 @@ async def get_matricula(
     cuatrimestre: int | None = Query(None, ge=0, le=10),
     programa_educativo: str | None = Query(None),
 ) -> MatriculaResumen:
-    sid = subsistema_id if user.role in ("admin", "directivo") else user.subsistema_id
+    sid = subsistema_id if user.role == "admin_general" else user.subsistema_id
     return await calcular_matricula(
         db,
         subsistema_id=sid,

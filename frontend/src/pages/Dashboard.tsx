@@ -7,7 +7,7 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Card, CardContent } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
-import { useFiltersStore } from "@/stores/filters";
+import { useFilters, hasActiveFilters } from "@/stores/filters";
 import { LineChart } from "@/components/charts/LineChart";
 import { Button } from "@/components/ui/Button";
 import { formatNumber } from "@/lib/utils";
@@ -51,7 +51,8 @@ type MetricType = "actual" | "nuevo" | "hombres" | "mujeres";
 
 export function Dashboard() {
   const { user } = useAuth();
-  const filters = useFiltersStore();
+  const filters = useFilters("dashboard");
+  const noFilters = !hasActiveFilters(filters);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("actual");
 
   // Initialize cycle for Dashboard only if it's empty
@@ -119,12 +120,12 @@ export function Dashboard() {
         </p>
       </div>
 
-      <FilterBar showCuatrimestre={true} showPrograma={false} />
+      <FilterBar scope="dashboard" showCuatrimestre={true} showPrograma={false} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 lg:gap-6 items-start">
         <KpiCard
           label="Matrícula Actual"
-          value={matricula?.total_actual ?? 0}
+          value={noFilters ? "—" : (matricula?.total_actual ?? 0)}
           variant="blue"
           active={selectedMetric === "actual"}
           onClick={() => setSelectedMetric("actual")}
@@ -134,7 +135,7 @@ export function Dashboard() {
         />
         <KpiCard
           label="Nuevo Ingreso"
-          value={matricula?.total_nuevo_ingreso ?? 0}
+          value={noFilters ? "—" : (matricula?.total_nuevo_ingreso ?? 0)}
           variant="green"
           active={selectedMetric === "nuevo"}
           onClick={() => setSelectedMetric("nuevo")}
@@ -144,7 +145,7 @@ export function Dashboard() {
         />
         <KpiCard
           label="Hombres"
-          value={matricula?.distribucion_genero.hombres ?? 0}
+          value={noFilters ? "—" : (matricula?.distribucion_genero.hombres ?? 0)}
           variant="blue"
           active={selectedMetric === "hombres"}
           onClick={() => setSelectedMetric("hombres")}
@@ -154,7 +155,7 @@ export function Dashboard() {
         />
         <KpiCard
           label="Mujeres"
-          value={matricula?.distribucion_genero.mujeres ?? 0}
+          value={noFilters ? "—" : (matricula?.distribucion_genero.mujeres ?? 0)}
           variant="amber"
           active={selectedMetric === "mujeres"}
           onClick={() => setSelectedMetric("mujeres")}

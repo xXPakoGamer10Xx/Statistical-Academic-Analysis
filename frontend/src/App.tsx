@@ -22,16 +22,16 @@ export function App() {
           <Route path="rendimiento" element={<Rendimiento />} />
           <Route path="eficiencia" element={<Eficiencia />} />
           <Route path="docentes" element={<Docentes />} />
-          {/* Solo admin puede subir archivos */}
-          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          {/* Admin escolar y general pueden subir archivos / captura manual */}
+          <Route element={<ProtectedRoute allowedRoles={["admin_escolar", "admin_general"]} />}>
             <Route path="cargas" element={<Cargas />} />
           </Route>
-          {/* Admin y directivo gestionan usuarios */}
-          <Route element={<ProtectedRoute allowedRoles={["admin", "directivo"]} />}>
+          {/* Admin escolar y general gestionan usuarios */}
+          <Route element={<ProtectedRoute allowedRoles={["admin_escolar", "admin_general"]} />}>
             <Route path="admin/usuarios" element={<Usuarios />} />
           </Route>
-          {/* Solo directivo ve la bitácora */}
-          <Route element={<ProtectedRoute allowedRoles={["directivo"]} />}>
+          {/* Solo admin general ve la bitácora */}
+          <Route element={<ProtectedRoute allowedRoles={["admin_general"]} />}>
             <Route path="admin/auditoria" element={<AuditLog />} />
           </Route>
         </Route>

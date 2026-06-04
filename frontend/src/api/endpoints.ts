@@ -2,6 +2,7 @@ import { api } from "./client";
 import type {
   EficienciaResumen,
   EvaluacionDocenteResumen,
+  ExcelAnalysis,
   FilterState,
   IndicadoresOpcionales,
   MatriculaResumen,
@@ -23,6 +24,13 @@ function extractFilename(contentDisposition?: string): string | null {
 
   const asciiMatch = contentDisposition.match(/filename\s*=\s*"([^"]+)"|filename\s*=\s*([^;]+)/i);
   return asciiMatch?.[1] ?? asciiMatch?.[2]?.trim() ?? null;
+}
+
+/** Marca de tiempo local para nombres de archivo: "2026-06-03_14-30-05". */
+function timestamp(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
 }
 
 function triggerBlobDownload(blob: Blob, fallbackFilename: string, contentDisposition?: string) {
@@ -73,6 +81,40 @@ export const uploadsApi = {
       .post<UploadJob>("/uploads", fd, { headers: { "Content-Type": "multipart/form-data" } })
       .then((r) => r.data);
   },
+  analyze: (file: File): Promise<ExcelAnalysis> => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api
+      .post<ExcelAnalysis>("/uploads/analyze", fd, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((r) => r.data);
+  },
+  uploadSmart: (
+    subsistemaId: number,
+    datasetType: string,
+    file: File,
+    options?: { sheetName?: string; headerRow?: number; columnMapping?: Record<string, string> },
+  ): Promise<UploadJob> => {
+    const fd = new FormData();
+    fd.append("subsistema_id", String(subsistemaId));
+    fd.append("dataset_type", datasetType);
+    fd.append("file", file);
+    if (options?.sheetName) fd.append("sheet_name", options.sheetName);
+    if (options?.headerRow !== undefined) fd.append("header_row", String(options.headerRow));
+    if (options?.columnMapping) fd.append("column_mapping", JSON.stringify(options.columnMapping));
+    return api
+      .post<UploadJob>("/uploads", fd, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((r) => r.data);
+  },
+  uploadManual: (subsistemaId: number, datasetType: string, rows: Record<string, string>[]) =>
+    api
+      .post<{
+        dataset_type: string;
+        rows_received: number;
+        rows_processed: number;
+        rows_failed: number;
+        errors: Array<Record<string, unknown>> | null;
+      }>("/uploads/manual", { subsistema_id: subsistemaId, dataset_type: datasetType, rows })
+      .then((r) => r.data),
   templateUrl: (datasetType: string) => `/api/v1/templates/${datasetType}`,
   downloadTemplate: async (datasetType: string) => {
     const response = await api.get(`/templates/${datasetType}`, {
@@ -83,7 +125,7 @@ export const uploadsApi = {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-    triggerBlobDownload(blob, `plantilla_${datasetType}.xlsx`, response.headers["content-disposition"]);
+    triggerBlobDownload(blob, `plantilla_${datasetType}_${timestamp()}.xlsx`, response.headers["content-disposition"]);
   },
 };
 
@@ -127,7 +169,7 @@ export const reportsApi = {
     });
     triggerBlobDownload(
       response.data,
-      `Reporte_Universidad_Politecnica_de_Texcoco_${seccion.charAt(0).toUpperCase() + seccion.slice(1)}.pdf`,
+      `Reporte_UPTEX_${seccion.charAt(0).toUpperCase() + seccion.slice(1)}_${timestamp()}.pdf`,
       response.headers["content-disposition"],
     );
   },
@@ -211,10 +253,12 @@ export const reportsApi = {
       cursor = cursor.parentElement;
     }
 
-    // Hacer scroll para que el elemento esté en el viewport (necesario para canvas)
-    chartsEl.scrollIntoView({ block: "start" });
+    // Guardar la posición de scroll para restaurarla al final (que la pantalla no se mueva)
+    const mainEl = document.querySelector("main");
+    const prevScrollTop = mainEl?.scrollTop ?? 0;
+    const prevWindowScroll = window.scrollY;
 
-    // Esperar layout estable y re-render de ECharts
+    // Esperar layout estable y re-render de ECharts (el nodo ya está pintado, no hace falta scroll)
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     await new Promise((r) => setTimeout(r, 300));
 
@@ -238,7 +282,7 @@ export const reportsApi = {
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = dataUrl;
-      a.download = `Reporte_Universidad_Politecnica_de_Texcoco_${seccion.charAt(0).toUpperCase() + seccion.slice(1)}.png`;
+      a.download = `Reporte_UPTEX_${seccion.charAt(0).toUpperCase() + seccion.slice(1)}_${timestamp()}.png`;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { document.body.removeChild(a); }, 500);
@@ -251,6 +295,9 @@ export const reportsApi = {
       });
       // Eliminar encabezado inyectado
       header.remove();
+      // Restaurar la posición de scroll para que la pantalla no se haya movido
+      if (mainEl) mainEl.scrollTop = prevScrollTop;
+      window.scrollTo({ top: prevWindowScroll });
     }
   },
   downloadImagePdf: async (
@@ -334,10 +381,12 @@ export const reportsApi = {
       cursor = cursor.parentElement;
     }
 
-    // Hacer scroll para que el elemento esté en el viewport (necesario para canvas)
-    chartsEl.scrollIntoView({ block: "start" });
+    // Guardar la posición de scroll para restaurarla al final (que la pantalla no se mueva)
+    const mainEl = document.querySelector("main");
+    const prevScrollTop = mainEl?.scrollTop ?? 0;
+    const prevWindowScroll = window.scrollY;
 
-    // Esperar layout estable y re-render de ECharts
+    // Esperar layout estable y re-render de ECharts (el nodo ya está pintado, no hace falta scroll)
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     await new Promise((r) => setTimeout(r, 300));
 
@@ -365,7 +414,7 @@ export const reportsApi = {
       });
 
       pdf.addImage(dataUrl, "PNG", 0, 0, captureW, captureH);
-      pdf.save(`Reporte_Universidad_Politecnica_de_Texcoco_${seccion.charAt(0).toUpperCase() + seccion.slice(1)}_Graficos.pdf`);
+      pdf.save(`Reporte_UPTEX_${seccion.charAt(0).toUpperCase() + seccion.slice(1)}_Graficos_${timestamp()}.pdf`);
     } finally {
       // Restaurar overflow en todos los elementos
       saved.forEach(({ el: e, ov, ovx, ovy }) => {
@@ -375,6 +424,9 @@ export const reportsApi = {
       });
       // Eliminar encabezado inyectado
       header.remove();
+      // Restaurar la posición de scroll para que la pantalla no se haya movido
+      if (mainEl) mainEl.scrollTop = prevScrollTop;
+      window.scrollTo({ top: prevWindowScroll });
     }
   },
 

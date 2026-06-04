@@ -1,4 +1,5 @@
 """Endpoint para descargar plantillas Excel de cada tipo de dataset."""
+from datetime import datetime
 from io import BytesIO
 
 from fastapi import APIRouter, HTTPException
@@ -60,7 +61,8 @@ async def download_template(dataset_type: str) -> Response:
     wb.save(buffer)
     content = buffer.getvalue()
 
-    filename = f"plantilla_{definition.key}.xlsx"
+    stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"plantilla_{definition.key}_{stamp}.xlsx"
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

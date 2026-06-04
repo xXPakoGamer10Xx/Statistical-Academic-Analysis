@@ -45,35 +45,33 @@ async def get_current_user(token: TokenDep, db: DbDep) -> User:
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-async def require_admin(current_user: CurrentUser) -> User:
-    if current_user.role != "admin":
+# ── Roles ────────────────────────────────────────────────────────────────────
+# viewer        → solo consulta; no sube ni exporta; limitado a su escuela.
+# admin_escolar → sube/gestiona datos y usuarios SOLO de su escuela.
+# admin_general → todo lo anterior + ve TODAS las escuelas.
+
+SCHOOL_ADMIN_ROLES = ("admin_escolar", "admin_general")
+
+
+async def require_school_admin(current_user: CurrentUser) -> User:
+    """Permite admin_escolar y admin_general (cargas, exportación, gestión de usuarios)."""
+    if current_user.role not in SCHOOL_ADMIN_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Se requiere rol de administrador",
+            detail="Se requiere rol de administrador (escolar o general)",
         )
     return current_user
 
 
-async def require_staff(current_user: CurrentUser) -> User:
-    """Permite admin y directivo (lectura de datos e indicadores)."""
-    if current_user.role not in ("admin", "directivo"):
+async def require_admin_general(current_user: CurrentUser) -> User:
+    """Solo admin_general (auditoría, gestión cross-escuela)."""
+    if current_user.role != "admin_general":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Se requiere rol de administrador o directivo",
+            detail="Se requiere rol de administrador general",
         )
     return current_user
 
 
-async def require_directivo(current_user: CurrentUser) -> User:
-    """Solo directivo (audit log, gestión de admins)."""
-    if current_user.role != "directivo":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Se requiere rol de directivo",
-        )
-    return current_user
-
-
-AdminUser = Annotated[User, Depends(require_admin)]
-StaffUser = Annotated[User, Depends(require_staff)]
-DirectivoUser = Annotated[User, Depends(require_directivo)]
+SchoolAdminUser = Annotated[User, Depends(require_school_admin)]
+GeneralAdminUser = Annotated[User, Depends(require_admin_general)]

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BarChart3, LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/api/endpoints";
+import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/stores/auth";
@@ -60,9 +61,9 @@ export function Login() {
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/30"
+              className="mx-auto mb-5 flex items-center justify-center rounded-2xl bg-white px-6 py-4 shadow-lg shadow-brand-500/20 ring-1 ring-slate-200/70"
             >
-              <BarChart3 className="h-8 w-8 text-white" />
+              <Logo className="h-16 w-auto" />
             </motion.div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Análisis Estadístico</h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 font-medium tracking-wide">Dirección Académica · Inicia sesión</p>

@@ -6,11 +6,12 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { ExportMenu } from "@/components/ui/ExportMenu";
-import { useFiltersStore } from "@/stores/filters";
+import { useFilters, hasActiveFilters } from "@/stores/filters";
 import { cn } from "@/lib/utils";
 
 export function Eficiencia() {
-  const filters = useFiltersStore();
+  const filters = useFilters("eficiencia");
+  const exportDisabled = !hasActiveFilters(filters);
 
   const [genInput, setGenInput] = useState("");
   const generaciones = genInput
@@ -36,7 +37,9 @@ export function Eficiencia() {
           <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">Comparativa hasta 3 generaciones egresadas</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ExportMenu 
+          <ExportMenu
+            disabled={exportDisabled}
+            disabledHint="Aplica al menos un filtro para exportar"
             onExportHistorical={() => reportsApi.downloadPdf("eficiencia", filters)}
             onExportPdf={() => reportsApi.downloadImagePdf("eficiencia", "charts-eficiencia", filters)}
             onExportImage={() => reportsApi.downloadImage("eficiencia", "charts-eficiencia", filters)}
@@ -44,7 +47,7 @@ export function Eficiencia() {
         </div>
       </div>
 
-      <FilterBar showCuatrimestre={false} />
+      <FilterBar scope="eficiencia" showCuatrimestre={false} />
 
       <Card>
         <CardHeader>

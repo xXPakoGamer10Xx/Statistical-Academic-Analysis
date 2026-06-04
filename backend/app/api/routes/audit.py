@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Query
 from sqlalchemy import select
 
-from app.api.deps import DbDep, DirectivoUser
+from app.api.deps import DbDep, GeneralAdminUser
 from app.models.audit_log import AuditLog
 from app.models.user import User
 from pydantic import BaseModel, ConfigDict
@@ -27,7 +27,7 @@ router = APIRouter()
 
 @router.get("", response_model=list[AuditLogOut])
 async def list_audit_logs(
-    _directivo: DirectivoUser,
+    _admin: GeneralAdminUser,
     db: DbDep,
     limit: int = Query(100, le=500),
     offset: int = Query(0, ge=0),

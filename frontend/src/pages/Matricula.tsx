@@ -7,28 +7,37 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ExportMenu } from "@/components/ui/ExportMenu";
-import { useFiltersStore } from "@/stores/filters";
+import { useFilters, hasActiveFilters } from "@/stores/filters";
 
 export function Matricula() {
-  const filters = useFiltersStore();
+  const filters = useFilters("matricula");
+  const exportDisabled = !hasActiveFilters(filters);
 
-
+  // Datos filtrados para KPIs, distribución y cuatrimestres
   const { data, isLoading } = useQuery({
     queryKey: ["matricula", filters],
     queryFn: () => indicadoresApi.matricula(filters),
   });
 
-  const series = data?.series ?? [];
-  const ciclos = Array.from(new Set(series.map((s) => s.ciclo_escolar))).sort();
+  // Datos históricos SIN filtro de ciclo para la gráfica de líneas
+  const historicalFilters = { ...filters, ciclo_escolar: undefined };
+  const { data: historicalData } = useQuery({
+    queryKey: ["matricula-historical", historicalFilters],
+    queryFn: () => indicadoresApi.matricula(historicalFilters),
+  });
+
+  const historicalSeries = historicalData?.series ?? [];
+  const ciclos = Array.from(new Set(historicalSeries.map((s) => s.ciclo_escolar))).sort();
   const matriculaPorCiclo = ciclos.map((c) =>
-    series.filter((s) => s.ciclo_escolar === c).reduce((sum, s) => sum + s.matricula_actual, 0)
+    historicalSeries.filter((s) => s.ciclo_escolar === c).reduce((sum, s) => sum + s.matricula_actual, 0)
   );
   const nuevoPorCiclo = ciclos.map((c) =>
-    series.filter((s) => s.ciclo_escolar === c).reduce((sum, s) => sum + s.nuevo_ingreso, 0)
+    historicalSeries.filter((s) => s.ciclo_escolar === c).reduce((sum, s) => sum + s.nuevo_ingreso, 0)
   );
-  const cuatris = Array.from(new Set(series.map((s) => s.cuatrimestre))).sort((a, b) => a - b);
+  const filteredSeries = data?.series ?? [];
+  const cuatris = Array.from(new Set(filteredSeries.map((s) => s.cuatrimestre))).sort((a, b) => a - b);
   const matriculaPorCuatri = cuatris.map((c) =>
-    series.filter((s) => s.cuatrimestre === c).reduce((sum, s) => sum + s.matricula_actual, 0)
+    filteredSeries.filter((s) => s.cuatrimestre === c).reduce((sum, s) => sum + s.matricula_actual, 0)
   );
 
   return (
@@ -39,7 +48,9 @@ export function Matricula() {
           <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">Indicadores históricos de matrícula institucional</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ExportMenu 
+          <ExportMenu
+            disabled={exportDisabled}
+            disabledHint="Aplica al menos un filtro para exportar"
             onExportHistorical={() => reportsApi.downloadPdf("matricula", filters)}
             onExportPdf={() => reportsApi.downloadImagePdf("matricula", "charts-matricula", filters)}
             onExportImage={() => reportsApi.downloadImage("matricula", "charts-matricula", filters)}
@@ -47,7 +58,7 @@ export function Matricula() {
         </div>
       </div>
 
-      <FilterBar />
+      <FilterBar scope="matricula" />
 
       {isLoading ? (
         <div className="flex h-48 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -59,10 +70,10 @@ export function Matricula() {
       ) : (
         <div id="charts-matricula" className="space-y-6">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:gap-6">
-            <KpiCard label="Matrícula Actual" value={data?.total_actual ?? 0} variant="blue" />
-            <KpiCard label="Nuevo Ingreso" value={data?.total_nuevo_ingreso ?? 0} variant="green" />
-            <KpiCard label="Hombres" value={data?.distribucion_genero.hombres ?? 0} variant="blue" />
-            <KpiCard label="Mujeres" value={data?.distribucion_genero.mujeres ?? 0} variant="amber" />
+            <KpiCard label="Matrícula Actual" value={exportDisabled ? "—" : (data?.total_actual ?? 0)} variant="blue" />
+            <KpiCard label="Nuevo Ingreso" value={exportDisabled ? "—" : (data?.total_nuevo_ingreso ?? 0)} variant="green" />
+            <KpiCard label="Hombres" value={exportDisabled ? "—" : (data?.distribucion_genero.hombres ?? 0)} variant="blue" />
+            <KpiCard label="Mujeres" value={exportDisabled ? "—" : (data?.distribucion_genero.mujeres ?? 0)} variant="amber" />
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

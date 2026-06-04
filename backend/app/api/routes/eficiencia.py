@@ -17,7 +17,7 @@ async def get_eficiencia(
 ) -> EficienciaResumen:
     if generaciones and len(generaciones) > 3:
         raise HTTPException(400, "Máximo 3 generaciones por consulta (RF-06)")
-    sid = subsistema_id if user.role in ("admin", "directivo") else user.subsistema_id
+    sid = subsistema_id if user.role == "admin_general" else user.subsistema_id
     return await calcular_eficiencia(
         db,
         subsistema_id=sid,

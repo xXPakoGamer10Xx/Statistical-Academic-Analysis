@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual Técnico — Plataforma de Análisis Estadístico Académico</title>
+  <style>
+    /* ─── Variables ─── */
+    :root {
+      --blue:    #1e40af;
+      --blue-lt: #3b82f6;
+      --blue-bg: #eff6ff;
+      --gray:    #374151;
+      --gray-lt: #6b7280;
+      --gray-bg: #f9fafb;
+      --green:   #166534;
+      --green-bg:#f0fdf4;
+      --red:     #991b1b;
+      --red-bg:  #fef2f2;
+      --amber:   #92400e;
+      --amber-bg:#fffbeb;
+      --border:  #e5e7eb;
+      --code-bg: #1e293b;
+      --code-fg: #e2e8f0;
+      --radius:  6px;
+    }
+
+    /* ─── Reset ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Base ─── */
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--gray);
+      background: #fff;
+    }
+
+    /* ─── Layout ─── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+
+    /* ─── Export button (screen only) ─── */
+    .export-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .export-bar span { font-size: 0.82rem; color: var(--gray-lt); }
+    .btn-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1.1rem;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-pdf:hover { background: #1d4ed8; }
+
+    /* ─── Cover ─── */
+    .cover {
+      text-align: center;
+      padding: 4rem 2rem 3rem;
+      border-bottom: 3px solid var(--blue);
+      margin-bottom: 3rem;
+    }
+    .cover .badge {
+      display: inline-block;
+      background: var(--blue-bg);
+      color: var(--blue);
+      border: 1px solid #bfdbfe;
+      border-radius: 99px;
+      padding: 0.3rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .cover h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--blue);
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+    .cover .subtitle {
+      font-size: 1.1rem;
+      color: var(--gray-lt);
+      margin-bottom: 2rem;
+    }
+    .cover-meta {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      font-size: 0.88rem;
+      color: var(--gray-lt);
+    }
+    .cover-meta strong { color: var(--gray); }
+
+    /* ─── TOC ─── */
+    .toc {
+      background: var(--gray-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.8rem;
+      margin-bottom: 3rem;
+    }
+    .toc h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--gray-lt);
+      margin-bottom: 0.9rem;
+    }
+    .toc ol {
+      padding-left: 1.2rem;
+      column-count: 2;
+      column-gap: 2rem;
+    }
+    .toc li { margin-bottom: 0.25rem; }
+    .toc a { color: var(--blue); text-decoration: none; font-size: 0.92rem; }
+    .toc a:hover { text-decoration: underline; }
+    .toc .sub { list-style: none; padding-left: 0.8rem; }
+    .toc .sub a { color: var(--gray); font-size: 0.85rem; }
+
+    /* ─── Sections ─── */
+    section { margin-bottom: 3.5rem; }
+
+    h2.section-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--blue);
+      border-bottom: 2px solid var(--blue-bg);
+      padding-bottom: 0.4rem;
+      margin-bottom: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2.section-title .num {
+      background: var(--blue);
+      color: #fff;
+      border-radius: 50%;
+      width: 1.8rem;
+      height: 1.8rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gray);
+      margin: 1.6rem 0 0.6rem;
+    }
+    h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gray);
+      margin: 1.2rem 0 0.4rem;
+    }
+    p { margin-bottom: 0.8rem; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 0.8rem; }
+    li { margin-bottom: 0.3rem; }
+
+    /* ─── Code ─── */
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-size: 0.84rem;
+      line-height: 1.6;
+      margin: 0.8rem 0 1rem;
+    }
+    code {
+      background: #f1f5f9;
+      color: #c026d3;
+      border-radius: 3px;
+      padding: 0.1em 0.35em;
+      font-size: 0.88em;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    /* ─── Tables ─── */
+    .table-wrap { overflow-x: auto; margin: 0.8rem 0 1.2rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    thead tr { background: var(--blue); color: #fff; }
+    thead th {
+      text-align: left;
+      padding: 0.6rem 0.9rem;
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+    }
+    tbody tr:nth-child(odd) { background: var(--gray-bg); }
+    tbody tr:nth-child(even) { background: #fff; }
+    tbody td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:hover { background: var(--blue-bg); }
+
+    /* ─── Callouts ─── */
+    .callout {
+      border-left: 4px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.8rem 1.1rem;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+    .callout.info   { border-color: var(--blue-lt);  background: var(--blue-bg);  color: #1e3a8a; }
+    .callout.warn   { border-color: #f59e0b;         background: var(--amber-bg); color: var(--amber); }
+    .callout.danger { border-color: #ef4444;         background: var(--red-bg);   color: var(--red); }
+    .callout.ok     { border-color: #22c55e;         background: var(--green-bg); color: var(--green); }
+    .callout strong { display: block; margin-bottom: 0.2rem; }
+
+    /* ─── Pills / badges ─── */
+    .pill {
+      display: inline-block;
+      border-radius: 99px;
+      padding: 0.15em 0.65em;
+      font-size: 0.78em;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .pill-blue   { background: var(--blue-bg);  color: var(--blue); }
+    .pill-green  { background: var(--green-bg); color: var(--green); }
+    .pill-gray   { background: var(--gray-bg);  color: var(--gray-lt); }
+    .pill-amber  { background: var(--amber-bg); color: var(--amber); }
+    .pill-red    { background: var(--red-bg);   color: var(--red); }
+
+    /* ─── Diagrams (ASCII art) ─── */
+    .diagram {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.4rem;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.83rem;
+      line-height: 1.5;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 0.8rem 0;
+    }
+
+    /* ─── Two-column grid ─── */
+    .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 0.8rem 0; }
+    @media (max-width: 640px) { .cols2 { grid-template-columns: 1fr; } }
+
+    /* ─── Card ─── */
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      background: var(--gray-bg);
+    }
+    .card h4 { margin-top: 0; }
+
+    /* ─── Formula box ─── */
+    .formula {
+      background: #fafafa;
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius);
+      padding: 0.7rem 1rem;
+      font-family: 'Cascadia Code', monospace;
+      font-size: 0.9rem;
+      color: #1e3a8a;
+      margin: 0.6rem 0;
+      text-align: center;
+    }
+
+    /* ─── Print styles ─── */
+    @media print {
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      .export-bar { display: none !important; }
+      body { font-size: 11pt; line-height: 1.5; }
+      .page-wrapper { max-width: 100%; padding: 16mm 18mm 18mm 18mm; }
+
+      h2.section-title { font-size: 14pt; page-break-after: avoid; }
+      h3 { font-size: 11.5pt; page-break-after: avoid; }
+      h4 { font-size: 10.5pt; page-break-after: avoid; }
+      pre { font-size: 8pt; page-break-inside: avoid; }
+      table { font-size: 8.5pt; page-break-inside: avoid; }
+      .toc { page-break-after: always; }
+      .cover { page-break-after: always; padding: 2rem 0 1.5rem; }
+      section { page-break-inside: avoid; }
+      .callout { page-break-inside: avoid; }
+      .cols2 { grid-template-columns: 1fr 1fr; }
+
+      a { color: inherit; text-decoration: none; }
+      .toc a { color: inherit; }
+
+      thead { display: table-header-group; }
+      tbody tr { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+
+<div class="page-wrapper">
+
+  <!-- ══════════════════════════════════════════
+       PORTADA
+  ══════════════════════════════════════════ -->
+  <div class="cover">
+    <div class="badge">Manual Técnico · v0.1.0</div>
+    <h1>Plataforma de Análisis<br>Estadístico Académico</h1>
+    <p class="subtitle">Sistema web para el cálculo y visualización de indicadores educativos institucionales</p>
+    <div class="cover-meta">
+      <div><strong>Versión</strong><br>0.1.0</div>
+      <div><strong>Fecha</strong><br>Mayo 2026</div>
+      <div><strong>Autor</strong><br>León Sánchez Emiliano</div>
+      <div><strong>Audiencia</strong><br>Técnicos, administradores y usuarios finales</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TABLA DE CONTENIDOS
+  ══════════════════════════════════════════ -->
+  <nav class="toc">
+    <h2>Contenido</h2>
+    <ol>
+      <li><a href="#s1">Introducción y objetivos</a></li>
+      <li><a href="#s2">Arquitectura general</a></li>
+      <li><a href="#s3">Stack tecnológico</a></li>
+      <li><a href="#s4">Estructura de directorios</a></li>
+      <li><a href="#s5">Configuración y variables de entorno</a></li>
+      <li><a href="#s6">Instalación y despliegue</a>
+        <ul class="sub">
+          <li><a href="#s6-prod">Producción</a></li>
+          <li><a href="#s6-dev">Desarrollo local</a></li>
+        </ul>
+      </li>
+      <li><a href="#s7">Modelo de datos</a></li>
+      <li><a href="#s8">API REST</a>
+        <ul class="sub">
+          <li><a href="#s8-auth">Autenticación</a></li>
+          <li><a href="#s8-rutas">Rutas disponibles</a></li>
+        </ul>
+      </li>
+      <li><a href="#s9">Seguridad</a></li>
+      <li><a href="#s10">Carga de archivos CSV / Excel</a></li>
+      <li><a href="#s11">Fórmulas e indicadores</a></li>
+      <li><a href="#s12">Frontend</a></li>
+      <li><a href="#s13">Subsistemas</a></li>
+      <li><a href="#s14">Roles y permisos</a></li>
+      <li><a href="#s15">Exportación de reportes PDF</a></li>
+      <li><a href="#s16">Pruebas automatizadas</a></li>
+      <li><a href="#s17">Migraciones de base de datos</a></li>
+      <li><a href="#s18">CI/CD</a></li>
+      <li><a href="#s19">Mantenimiento y operación</a></li>
+      <li><a href="#s20">Glosario</a></li>
+    </ol>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       1. INTRODUCCIÓN
+  ══════════════════════════════════════════ -->
+  <section id="s1">
+    <h2 class="section-title"><span class="num">1</span>Introducción y objetivos</h2>
+
+    <p>La <strong>Plataforma de Análisis Estadístico Académico</strong> es un sistema web diseñado para la Dirección Académica de una institución de educación superior. Su propósito central es automatizar el cálculo de los <strong>indicadores institucionales oficiales</strong> y presentarlos como dashboards interactivos, eliminando el trabajo manual en hojas de cálculo y reduciendo el riesgo de errores en los reportes.</p>
+
+    <h3>Indicadores calculados</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Indicador</th><th>Descripción</th><th>Dataset requerido</th></tr></thead>
+        <tbody>
+          <tr><td>Matrícula total</td><td>Total de alumnos inscritos por programa y período</td><td>matricula</td></tr>
+          <tr><td>Nuevo ingreso</td><td>Alumnos que ingresan por primera vez</td><td>matricula</td></tr>
+          <tr><td>Aprovechamiento</td><td>Promedio general del programa educativo</td><td>evaluacion_academica</td></tr>
+          <tr><td>Reprobación</td><td>% de bajas por reprobación sobre total</td><td>matricula</td></tr>
+          <tr><td>Deserción</td><td>% de bajas por deserción sobre total</td><td>matricula</td></tr>
+          <tr><td>Eficiencia Terminal</td><td>% de egresados vs matrícula generacional (máx. 3 generaciones)</td><td>titulacion</td></tr>
+          <tr><td>Titulación</td><td>% de titulados vs egresados</td><td>titulacion</td></tr>
+          <tr><td>Evaluación docente</td><td>Promedio de puntaje por docente (alumnos vs directivos)</td><td>evaluacion_docente</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Usuarios objetivo</h3>
+    <ul>
+      <li><strong>Administrador del sistema</strong>: configura cuentas, carga los CSVs históricos, supervisa procesos.</li>
+      <li><strong>Directivo</strong>: consulta dashboards, exporta reportes, revisa la bitácora de auditoría.</li>
+      <li><strong>Usuario analista</strong>: visualiza indicadores filtrados por subsistema y período.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       2. ARQUITECTURA
+  ══════════════════════════════════════════ -->
+  <section id="s2">
+    <h2 class="section-title"><span class="num">2</span>Arquitectura general</h2>
+
+    <p>El sistema sigue una arquitectura de tres capas clásica, completamente contenerizada con Docker Compose. Todos los servicios se comunican dentro de una red interna privada (<code>internal</code>); solo el servidor web expone el puerto 80 al exterior.</p>
+
+    <div class="diagram">┌────────────────────────────────────────────────────────────┐
+│                      NAVEGADOR DEL USUARIO                  │
+└─────────────────────────────┬──────────────────────────────┘
+                              │ HTTP :80
+┌─────────────────────────────▼──────────────────────────────┐
+│                      Nginx (frontend)                       │
+│     /            →  React SPA (build estático)              │
+│     /api/*       →  FastAPI (proxy inverso)                 │
+└────────────┬───────────────────────────────────────────────┘
+             │ (red interna Docker)
+┌────────────▼──────────────┐     ┌──────────────────────────┐
+│   FastAPI + Gunicorn       │────▶│     PostgreSQL 16         │
+│   (backend)                │     │  (datos relacionales)    │
+└────────────┬──────────────┘     └──────────────────────────┘
+             │
+┌────────────▼──────────────┐     ┌──────────────────────────┐
+│   Redis 7                  │◀───▶│   Celery Workers (×2)    │
+│   (cola de tareas + cache) │     │  (procesado CSV asínc.)  │
+└───────────────────────────┘     └──────────────────────────┘</div>
+
+    <h3>Flujo de carga de datos</h3>
+    <div class="diagram">Usuario sube CSV
+       │
+       ▼
+POST /api/v1/uploads
+       │  encola job
+       ▼
+    Redis ──► Celery Worker
+                    │
+                    ├─ Lee y valida CSV (Pandas)
+                    ├─ Inserta filas válidas en PostgreSQL
+                    └─ Marca job como completed / failed
+
+Frontend hace polling cada 3 s a GET /api/v1/uploads/{id}
+hasta que job.status == "completed" o "failed"</div>
+
+    <h3>Flujo de autenticación</h3>
+    <div class="diagram">POST /api/v1/auth/login  { email, password }
+       │
+       ▼ verifica contraseña (Argon2)
+       │
+       ├─► access_token  (JWT, 15 min) ──► incluido en header Authorization
+       └─► refresh_token (JWT, 7 días) ──► guardado en localStorage
+
+Cuando access_token expira:
+POST /api/v1/auth/refresh  { refresh_token }
+       │
+       └─► nuevos access_token + refresh_token</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       3. STACK TECNOLÓGICO
+  ══════════════════════════════════════════ -->
+  <section id="s3">
+    <h2 class="section-title"><span class="num">3</span>Stack tecnológico</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Capa</th><th>Tecnología</th><th>Versión</th><th>Propósito</th></tr></thead>
+        <tbody>
+          <tr><td><strong>API Backend</strong></td><td>FastAPI</td><td>0.115.6</td><td>Framework web asíncrono de alto rendimiento</td></tr>
+          <tr><td></td><td>Python</td><td>3.12</td><td>Lenguaje principal del backend</td></tr>
+          <tr><td></td><td>Uvicorn + Gunicorn</td><td>0.32.1 / 23.0</td><td>Servidor ASGI con múltiples workers</td></tr>
+          <tr><td><strong>ORM / BD</strong></td><td>SQLAlchemy 2 (async)</td><td>2.0.36</td><td>Mapeo objeto-relacional asíncrono</td></tr>
+          <tr><td></td><td>PostgreSQL</td><td>16</td><td>Base de datos relacional principal</td></tr>
+          <tr><td></td><td>asyncpg</td><td>0.30.0</td><td>Driver async para PostgreSQL</td></tr>
+          <tr><td></td><td>Alembic</td><td>1.14.0</td><td>Migraciones de esquema</td></tr>
+          <tr><td><strong>Datos</strong></td><td>Pandas</td><td>2.2.3</td><td>Validación y transformación de CSVs</td></tr>
+          <tr><td></td><td>NumPy</td><td>2.2.1</td><td>Operaciones numéricas</td></tr>
+          <tr><td></td><td>Polars</td><td>1.18.0</td><td>Procesado de alto rendimiento (opcional)</td></tr>
+          <tr><td></td><td>openpyxl</td><td>3.1.5</td><td>Lectura de archivos Excel</td></tr>
+          <tr><td><strong>Colas</strong></td><td>Celery</td><td>5.4.0</td><td>Procesado asíncrono de archivos pesados</td></tr>
+          <tr><td></td><td>Redis</td><td>7</td><td>Broker de mensajes y backend de resultados</td></tr>
+          <tr><td><strong>Seguridad</strong></td><td>PassLib + Argon2</td><td>1.7.4</td><td>Hash de contraseñas</td></tr>
+          <tr><td></td><td>PyJWT</td><td>2.10.1</td><td>Tokens de acceso JWT (HS256)</td></tr>
+          <tr><td></td><td>SlowAPI</td><td>0.1.9</td><td>Rate limiting por IP</td></tr>
+          <tr><td><strong>Reportes</strong></td><td>WeasyPrint</td><td>63.1</td><td>Generación de PDFs desde HTML/CSS</td></tr>
+          <tr><td></td><td>Jinja2</td><td>3.1.5</td><td>Templates HTML para reportes</td></tr>
+          <tr><td><strong>Frontend</strong></td><td>React</td><td>18.3.1</td><td>Interfaz de usuario</td></tr>
+          <tr><td></td><td>TypeScript</td><td>5.7.2</td><td>Tipado estático</td></tr>
+          <tr><td></td><td>Vite</td><td>6.0.7</td><td>Bundler y servidor de desarrollo</td></tr>
+          <tr><td></td><td>Tailwind CSS</td><td>3.4.17</td><td>Estilos utilitarios</td></tr>
+          <tr><td></td><td>ECharts</td><td>5.5.1</td><td>Gráficas interactivas</td></tr>
+          <tr><td></td><td>TanStack Query</td><td>5.62.7</td><td>Cache y sincronización de datos servidor</td></tr>
+          <tr><td></td><td>Zustand</td><td>5.0.2</td><td>Estado global del cliente</td></tr>
+          <tr><td></td><td>React Router</td><td>6.28.1</td><td>Enrutamiento SPA</td></tr>
+          <tr><td><strong>Infraestructura</strong></td><td>Docker + Compose</td><td>v2</td><td>Orquestación de contenedores</td></tr>
+          <tr><td></td><td>Nginx</td><td>Alpine</td><td>Servidor web + proxy inverso</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       4. ESTRUCTURA DE DIRECTORIOS
+  ══════════════════════════════════════════ -->
+  <section id="s4">
+    <h2 class="section-title"><span class="num">4</span>Estructura de directorios</h2>
+
+    <div class="diagram">Statistical-Academic-Analysis/
+├── backend/                      ← Código del servidor
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── deps.py           ← Dependencias inyectables (DB, usuario actual)
+│   │   │   └── routes/           ← Un archivo por dominio
+│   │   │       ├── auth.py       ← Login y refresh de tokens
+│   │   │       ├── users.py      ← CRUD de usuarios (solo admin)
+│   │   │       ├── subsistemas.py← Lista de subsistemas
+│   │   │       ├── uploads.py    ← Subida de archivos CSV/Excel
+│   │   │       ├── matricula.py  ← Datos de matrícula
+│   │   │       ├── rendimiento.py← Evaluación académica
+│   │   │       ├── eficiencia.py ← Eficiencia terminal y titulación
+│   │   │       ├── docentes.py   ← Evaluación docente
+│   │   │       ├── reports.py    ← Generación de PDF
+│   │   │       ├── templates.py  ← Templates de reportes
+│   │   │       ├── audit.py      ← Bitácora de auditoría
+│   │   │       └── health.py     ← Health-check del servicio
+│   │   ├── core/
+│   │   │   ├── config.py         ← Ajustes desde variables de entorno
+│   │   │   ├── database.py       ← Sesión async de SQLAlchemy
+│   │   │   └── security.py       ← Hash, JWT, verificación
+│   │   ├── models/               ← Modelos SQLAlchemy (tablas)
+│   │   ├── schemas/              ← Esquemas Pydantic (request / response)
+│   │   ├── services/             ← Lógica de negocio
+│   │   │   ├── csv_processor.py  ← Parseo y validación de archivos
+│   │   │   ├── dataset_definitions.py ← Definición de columnas por dataset
+│   │   │   ├── formulas.py       ← Cálculos estadísticos
+│   │   │   ├── indicadores.py    ← Consultas de indicadores a la BD
+│   │   │   ├── pdf_export.py     ← Generación de PDF con WeasyPrint
+│   │   │   └── audit.py          ← Registro de eventos en bitácora
+│   │   ├── workers/
+│   │   │   ├── celery_app.py     ← Configuración de Celery
+│   │   │   └── tasks.py          ← Tarea de procesado de CSV
+│   │   └── main.py               ← Punto de entrada FastAPI
+│   ├── alembic/                  ← Migraciones de base de datos
+│   │   └── versions/             ← Un archivo por migración
+│   ├── tests/                    ← Pruebas unitarias
+│   ├── scripts/
+│   │   └── create_admin.py       ← Crea el usuario administrador inicial
+│   ├── Dockerfile                ← Imagen del backend
+│   ├── Dockerfile.worker         ← Imagen del worker Celery
+│   └── pyproject.toml            ← Dependencias y configuración Python
+├── frontend/                     ← Código de la interfaz
+│   ├── src/
+│   │   ├── pages/                ← Vistas (Dashboard, Matrícula, etc.)
+│   │   ├── components/           ← Componentes reutilizables
+│   │   │   ├── layout/           ← Layout, ProtectedRoute, Sidebar
+│   │   │   └── filters/          ← FilterBar para filtros dinámicos
+│   │   ├── App.tsx               ← Definición de rutas
+│   │   └── main.tsx              ← Punto de entrada React
+│   ├── Dockerfile                ← Imagen del frontend (Nginx + build)
+│   ├── nginx.conf                ← Configuración de Nginx
+│   ├── vite.config.ts
+│   └── package.json
+├── .github/workflows/deploy.yml  ← Pipeline CI/CD
+├── docker-compose.yml            ← Stack de producción
+├── docker-compose.dev.yml        ← Stack de desarrollo (hot-reload)
+├── start.sh                      ← Script de instalación en producción
+├── dev.sh                        ← Script para desarrollo local
+└── .env.example                  ← Plantilla de variables de entorno</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       5. CONFIGURACIÓN Y VARIABLES DE ENTORNO
+  ══════════════════════════════════════════ -->
+  <section id="s5">
+    <h2 class="section-title"><span class="num">5</span>Configuración y variables de entorno</h2>
+
+    <p>Toda la configuración se lee desde un archivo <code>.env</code> en la raíz del proyecto. El script <code>start.sh</code> lo genera automáticamente la primera vez. También puede crearse manualmente copiando <code>.env.example</code>.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Variable</th><th>Requerida</th><th>Valor por defecto</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><code>POSTGRES_DB</code></td><td><span class="pill pill-gray">No</span></td><td>academia</td><td>Nombre de la base de datos PostgreSQL</td></tr>
+          <tr><td><code>POSTGRES_USER</code></td><td><span class="pill pill-gray">No</span></td><td>academia</td><td>Usuario de PostgreSQL</td></tr>
+          <tr><td><code>POSTGRES_PASSWORD</code></td><td><span class="pill pill-red">Sí</span></td><td>—</td><td>Contraseña de PostgreSQL (nunca vacía en producción)</td></tr>
+          <tr><td><code>JWT_SECRET</code></td><td><span class="pill pill-red">Sí</span></td><td>—</td><td>Clave para firmar JWT, mínimo 32 caracteres. Generar con: <code>openssl rand -hex 32</code></td></tr>
+          <tr><td><code>ALLOWED_ORIGINS</code></td><td><span class="pill pill-gray">No</span></td><td>http://localhost</td><td>Lista de orígenes CORS permitidos, separados por coma</td></tr>
+          <tr><td><code>INITIAL_ADMIN_EMAIL</code></td><td><span class="pill pill-gray">No</span></td><td>admin@universidad.edu</td><td>Email del administrador creado automáticamente</td></tr>
+          <tr><td><code>INITIAL_ADMIN_PASSWORD</code></td><td><span class="pill pill-red">Sí</span></td><td>—</td><td>Contraseña del administrador inicial</td></tr>
+          <tr><td><code>UPLOAD_MAX_SIZE_MB</code></td><td><span class="pill pill-gray">No</span></td><td>200</td><td>Tamaño máximo de archivo a subir en MB</td></tr>
+          <tr><td><code>HTTP_PORT</code></td><td><span class="pill pill-gray">No</span></td><td>80</td><td>Puerto en el que escucha Nginx</td></tr>
+          <tr><td><code>ENVIRONMENT</code></td><td><span class="pill pill-gray">No</span></td><td>production</td><td>Entorno (<code>production</code> | <code>development</code> | <code>testing</code>)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <strong>Importante — seguridad</strong>
+      Nunca subas el archivo <code>.env</code> a control de versiones. Está excluido en <code>.gitignore</code>. Usa contraseñas únicas y seguras en producción.
+    </div>
+
+    <h3>Parámetros internos del backend (<code>app/core/config.py</code>)</h3>
+    <p>Además de las variables de entorno anteriores, el sistema define valores internos por defecto:</p>
+    <ul>
+      <li><strong>JWT_ACCESS_EXPIRE_MINUTES</strong>: 15 minutos — duración del access token</li>
+      <li><strong>JWT_REFRESH_EXPIRE_DAYS</strong>: 7 días — duración del refresh token</li>
+      <li><strong>RATE_LIMIT_PER_MINUTE</strong>: 120 peticiones/min por IP</li>
+      <li><strong>DATABASE_POOL_SIZE</strong>: 20 conexiones en el pool de PostgreSQL</li>
+      <li><strong>DATABASE_MAX_OVERFLOW</strong>: 10 conexiones adicionales de overflow</li>
+      <li><strong>UPLOAD_DIR</strong>: <code>/data/uploads</code> — carpeta donde se almacenan los archivos subidos dentro del contenedor</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       6. INSTALACIÓN Y DESPLIEGUE
+  ══════════════════════════════════════════ -->
+  <section id="s6">
+    <h2 class="section-title"><span class="num">6</span>Instalación y despliegue</h2>
+
+    <h3>Requisitos previos</h3>
+    <ul>
+      <li>Docker 24 o superior</li>
+      <li>Docker Compose v2 (<code>docker compose</code> sin guion)</li>
+      <li>4 GB de RAM disponibles (recomendado 8 GB)</li>
+      <li>Puerto 80 libre (producción) o puertos 5173 y 8000 (desarrollo)</li>
+    </ul>
+
+    <h3 id="s6-prod">Instalación en producción</h3>
+    <p>Un único comando levanta todo el sistema:</p>
+<pre><code>./start.sh</code></pre>
+
+    <p>El script <code>start.sh</code> realiza automáticamente:</p>
+    <ol>
+      <li>Verifica que Docker esté instalado y en ejecución.</li>
+      <li>Genera el archivo <code>.env</code> con secretos aleatorios seguros (solo la primera vez).</li>
+      <li>Construye todas las imágenes Docker.</li>
+      <li>Inicia los servicios (PostgreSQL, Redis, Backend, Worker, Frontend/Nginx).</li>
+      <li>Espera a que PostgreSQL esté listo (<em>health check</em>).</li>
+      <li>Aplica todas las migraciones de Alembic.</li>
+      <li>Crea el usuario administrador inicial.</li>
+      <li>Imprime en consola la URL de acceso y las credenciales generadas.</li>
+    </ol>
+
+    <div class="callout ok">
+      <strong>Resultado final</strong>
+      La plataforma queda accesible en <strong>http://localhost</strong> (o el puerto configurado). Las credenciales del administrador se muestran en la terminal al finalizar.
+    </div>
+
+    <h4>Comandos útiles en producción</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Comando</th><th>Acción</th></tr></thead>
+        <tbody>
+          <tr><td><code>docker compose ps</code></td><td>Ver el estado de todos los servicios</td></tr>
+          <tr><td><code>docker compose logs -f backend</code></td><td>Ver logs en tiempo real del backend</td></tr>
+          <tr><td><code>docker compose logs -f worker</code></td><td>Ver logs del worker Celery</td></tr>
+          <tr><td><code>docker compose down</code></td><td>Detener el sistema (los datos persisten)</td></tr>
+          <tr><td><code>docker compose down -v</code></td><td>Detener y borrar todos los datos (¡irreversible!)</td></tr>
+          <tr><td><code>docker compose up -d --build</code></td><td>Reconstruir imágenes y reiniciar tras cambios en el código</td></tr>
+          <tr><td><code>docker compose --profile worker up -d --scale worker=4</code></td><td>Escalar a 4 workers Celery para mayor capacidad de procesado</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="s6-dev">Desarrollo local (con hot-reload)</h3>
+    <p>Para desarrollo activo donde los cambios en el código se reflejan automáticamente:</p>
+<pre><code>./dev.sh</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Comando</th><th>Acción</th></tr></thead>
+        <tbody>
+          <tr><td><code>./dev.sh</code></td><td>Levantar con hot-reload activado</td></tr>
+          <tr><td><code>./dev.sh logs</code></td><td>Ver logs de todos los servicios</td></tr>
+          <tr><td><code>./dev.sh shell</code></td><td>Abrir bash dentro del contenedor del backend</td></tr>
+          <tr><td><code>./dev.sh down</code></td><td>Detener el entorno de desarrollo</td></tr>
+          <tr><td><code>./dev.sh reset</code></td><td>Detener y borrar volúmenes de datos</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Puntos de acceso en desarrollo:</p>
+    <ul>
+      <li><strong>Frontend (Vite)</strong>: <code>http://localhost:5173</code></li>
+      <li><strong>API + Documentación interactiva (Swagger)</strong>: <code>http://localhost:8000/api/docs</code></li>
+      <li><strong>ReDoc</strong>: <code>http://localhost:8000/api/redoc</code></li>
+      <li><strong>Credenciales de prueba</strong>: <code>admin@universidad.edu</code> / <code>admin12345</code></li>
+    </ul>
+
+    <div class="callout info">
+      <strong>Hot-reload</strong>
+      En modo desarrollo, cualquier cambio en <code>backend/app/**</code> reinicia automáticamente el servidor FastAPI, y cualquier cambio en <code>frontend/src/**</code> actualiza el navegador sin recargar la página completa.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       7. MODELO DE DATOS
+  ══════════════════════════════════════════ -->
+  <section id="s7">
+    <h2 class="section-title"><span class="num">7</span>Modelo de datos</h2>
+
+    <p>La base de datos PostgreSQL contiene las siguientes tablas principales:</p>
+
+    <div class="diagram">┌──────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+│  subsistemas │◄────│        users         │     │       matricula       │
+├──────────────┤     ├──────────────────────┤     ├──────────────────────┤
+│ id (PK)      │     │ id (UUID, PK)        │     │ id (PK)              │
+│ nombre       │     │ email (único)        │     │ subsistema_id (FK)   │
+│ codigo       │     │ full_name            │     │ ciclo_escolar        │
+│ descripcion  │     │ password_hash        │     │ cuatrimestre         │
+└──────────────┘     │ role                 │     │ programa_educativo   │
+        ▲            │ subsistema_id (FK)   │     │ total                │
+        │            │ is_active            │     │ nuevo_ingreso        │
+        │            │ created_at           │     │ bajas_reprobacion    │
+        │            └──────────────────────┘     │ bajas_desercion      │
+        │                                         │ hombres              │
+        │                                         │ mujeres              │
+        │            ┌──────────────────────┐     │ poblacion_edad_esc.  │
+        │            │  evaluacion_academica │     │ egresados_nms        │
+        │            ├──────────────────────┤     └──────────────────────┘
+        ├────────────│ subsistema_id (FK)   │
+        │            │ ciclo_escolar        │     ┌──────────────────────┐
+        │            │ cuatrimestre         │     │      titulacion      │
+        │            │ programa_educativo   │     ├──────────────────────┤
+        │            │ promedio_pe          │     │ subsistema_id (FK)   │
+        │            │ num_pe               │     │ generacion           │
+        │            └──────────────────────┘     │ programa_educativo   │
+        │                                         │ matricula_generac.   │
+        │            ┌──────────────────────┐     │ concluyeron_estudios │
+        │            │  evaluacion_docente  │     │ egresados            │
+        │            ├──────────────────────┤     │ titulados            │
+        └────────────│ subsistema_id (FK)   │     └──────────────────────┘
+                     │ ciclo_escolar        │
+                     │ docente_id           │     ┌──────────────────────┐
+                     │ docente_nombre       │     │    upload_jobs       │
+                     │ programa_educativo   │     ├──────────────────────┤
+                     │ evaluador_tipo       │     │ id (UUID)            │
+                     │ puntaje              │     │ status               │
+                     └──────────────────────┘     │ dataset_type         │
+                                                  │ total_rows           │
+                     ┌──────────────────────┐     │ valid_rows           │
+                     │     audit_logs       │     │ error_rows           │
+                     ├──────────────────────┤     │ errors_detail (JSON) │
+                     │ id                   │     └──────────────────────┘
+                     │ user_id (FK)         │
+                     │ action               │
+                     │ resource             │
+                     │ timestamp            │
+                     └──────────────────────┘</div>
+
+    <h3>Restricciones de integridad importantes</h3>
+    <ul>
+      <li><strong>matricula</strong>: clave única compuesta por <code>(subsistema_id, ciclo_escolar, cuatrimestre, programa_educativo)</code> — evita duplicados al re-subir el mismo CSV.</li>
+      <li><strong>users → subsistemas</strong>: <code>ON DELETE SET NULL</code> — si se elimina un subsistema, el usuario queda sin subsistema asignado pero no se borra.</li>
+      <li><strong>matricula → subsistemas</strong>: <code>ON DELETE CASCADE</code> — si se elimina un subsistema, se eliminan todos sus datos.</li>
+      <li><strong>Contraseñas</strong>: almacenadas como hash Argon2, nunca en texto plano.</li>
+    </ul>
+
+    <h3>Tabla de roles de usuario</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Valor en BD</th><th>Nombre</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><code>admin</code></td><td>Administrador</td><td>Acceso total: gestión de usuarios, carga de datos, todas las vistas</td></tr>
+          <tr><td><code>directivo</code></td><td>Directivo</td><td>Gestión de usuarios, bitácora de auditoría, visualización de indicadores</td></tr>
+          <tr><td><code>usuario</code></td><td>Usuario analista</td><td>Solo visualización de dashboards e indicadores</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       8. API REST
+  ══════════════════════════════════════════ -->
+  <section id="s8">
+    <h2 class="section-title"><span class="num">8</span>API REST</h2>
+
+    <p>Todas las rutas bajo <code>/api/v1/</code> requieren autenticación mediante JWT en el encabezado <code>Authorization: Bearer &lt;access_token&gt;</code>, salvo las rutas de autenticación y el health-check.</p>
+
+    <h3 id="s8-auth">8.1 Autenticación</h3>
+
+    <h4>POST /api/v1/auth/login</h4>
+    <p>Inicia sesión y devuelve tokens JWT.</p>
+<pre><code>// Request
+{
+  "email": "admin@universidad.edu",
+  "password": "mi_contraseña_segura"
+}
+
+// Response 200
+{
+  "access_token":  "eyJ...",
+  "refresh_token": "eyJ...",
+  "token_type":    "bearer",
+  "expires_in":    900        // segundos (15 minutos)
+}</code></pre>
+
+    <h4>POST /api/v1/auth/refresh</h4>
+    <p>Renueva el access token usando el refresh token.</p>
+<pre><code>// Request
+{ "refresh_token": "eyJ..." }
+
+// Response 200 — misma estructura que /login</code></pre>
+
+    <h3 id="s8-rutas">8.2 Rutas disponibles por módulo</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ruta</th><th>Método</th><th>Rol mínimo</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td colspan="4" style="background:#f0f4ff;font-weight:700;color:#1e40af">── Salud ──</td></tr>
+          <tr><td><code>/api/health</code></td><td>GET</td><td>Público</td><td>Health-check del servicio</td></tr>
+
+          <tr><td colspan="4" style="background:#f0f4ff;font-weight:700;color:#1e40af">── Usuarios ──</td></tr>
+          <tr><td><code>/api/v1/users</code></td><td>GET</td><td>admin</td><td>Listar usuarios</td></tr>
+          <tr><td><code>/api/v1/users</code></td><td>POST</td><td>admin</td><td>Crear usuario</td></tr>
+          <tr><td><code>/api/v1/users/{id}</code></td><td>GET</td><td>admin</td><td>Detalle de usuario</td></tr>
+          <tr><td><code>/api/v1/users/{id}</code></td><td>PATCH</td><td>admin</td><td>Editar usuario</td></tr>
+          <tr><td><code>/api/v1/users/{id}</code></td><td>DELETE</td><td>admin</td><td>Desactivar usuario</td></tr>
+
+          <tr><td colspan="4" style="background:#f0f4ff;font-weight:700;color:#1e40af">── Subsistemas ──</td></tr>
+          <tr><td><code>/api/v1/subsistemas</code></td><td>GET</td><td>usuario</td><td>Listar subsistemas disponibles</td></tr>
+
+          <tr><td colspan="4" style="background:#f0f4ff;font-weight:700;color:#1e40af">── Carga de datos ──</td></tr>
+          <tr><td><code>/api/v1/uploads</code></td><td>POST</td><td>admin</td><td>Subir archivo CSV o Excel</td></tr>
+          <tr><td><code>/api/v1/uploads</code></td><td>GET</td><td>admin</td><td>Listar trabajos de carga</td></tr>
+          <tr><td><code>/api/v1/uploads/{id}</code></td><td>GET</td><td>admin</td><td>Estado de un trabajo de carga</td></tr>
+
+          <tr><td colspan="4" style="background:#f0f4ff;font-weight:700;color:#1e40af">── Indicadores ──</td></tr>
+          <tr><td><code>/api/v1/matricula</code></td><td>GET</td><td>usuario</td><td>Datos de matrícula con filtros</td></tr>
+          <tr><td><code>/api/v1/rendimiento</code></td><td>GET</td><td>usuario</td><td>Datos de aprovechamiento y reprobación</td></tr>
+          <tr><td><code>/api/v1/eficiencia</code></td><td>GET</td><td>usuario</td><td>Eficiencia terminal y titulación</td></tr>
+          <tr><td><code>/api/v1/docentes</code></td><td>GET</td><td>usuario</td><td>Evaluación docente</td></tr>
+
+          <tr><td colspan="4" style="background:#f0f4ff;font-weight:700;color:#1e40af">── Reportes ──</td></tr>
+          <tr><td><code>/api/v1/reports/pdf</code></td><td>POST</td><td>usuario</td><td>Generar reporte PDF</td></tr>
+          <tr><td><code>/api/v1/templates</code></td><td>GET</td><td>usuario</td><td>Listar templates de reportes</td></tr>
+
+          <tr><td colspan="4" style="background:#f0f4ff;font-weight:700;color:#1e40af">── Auditoría ──</td></tr>
+          <tr><td><code>/api/v1/audit-logs</code></td><td>GET</td><td>directivo</td><td>Ver bitácora de acciones</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Parámetros de filtrado comunes</h3>
+    <p>Los endpoints de indicadores aceptan los siguientes parámetros de query:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Parámetro</th><th>Tipo</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><code>subsistema_id</code></td><td>integer</td><td>Filtrar por subsistema específico</td></tr>
+          <tr><td><code>ciclo_escolar</code></td><td>string</td><td>Ej: <code>2025-2026</code></td></tr>
+          <tr><td><code>cuatrimestre</code></td><td>integer</td><td>1, 2 o 3</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>string</td><td>Nombre del programa</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>Documentación interactiva</strong>
+      En modo desarrollo accede a <code>http://localhost:8000/api/docs</code> para explorar y probar todos los endpoints directamente en el navegador (Swagger UI).
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       9. SEGURIDAD
+  ══════════════════════════════════════════ -->
+  <section id="s9">
+    <h2 class="section-title"><span class="num">9</span>Seguridad</h2>
+
+    <div class="cols2">
+      <div class="card">
+        <h4>Contraseñas</h4>
+        <p>Almacenadas con <strong>Argon2</strong> (ganador del concurso Password Hashing Competition). Es el algoritmo más resistente a ataques de fuerza bruta por GPU.</p>
+      </div>
+      <div class="card">
+        <h4>Tokens JWT</h4>
+        <p>Firmados con HMAC-SHA256 (<code>HS256</code>). Access token caduca a los <strong>15 minutos</strong>; refresh token a los <strong>7 días</strong>. La clave de firma se genera aleatoriamente en cada instalación.</p>
+      </div>
+      <div class="card">
+        <h4>Rate Limiting</h4>
+        <p>Máximo <strong>120 peticiones por minuto</strong> por IP, aplicado globalmente con SlowAPI. Configurable con <code>RATE_LIMIT_PER_MINUTE</code>.</p>
+      </div>
+      <div class="card">
+        <h4>CORS</h4>
+        <p>Solo los orígenes listados en <code>ALLOWED_ORIGINS</code> pueden hacer peticiones cross-origin. Configuración estricta por lista blanca.</p>
+      </div>
+      <div class="card">
+        <h4>Validación de entrada</h4>
+        <p>Todos los request bodies son validados con <strong>Pydantic v2</strong> antes de procesarse. Los archivos CSV pasan por validación adicional de tipos y valores permitidos.</p>
+      </div>
+      <div class="card">
+        <h4>Auditoría</h4>
+        <p>Las acciones relevantes (login, carga de datos, cambios de usuario) quedan registradas en la tabla <code>audit_logs</code> con usuario, timestamp y recurso afectado.</td>
+      </div>
+    </div>
+
+    <h3>RBAC (Control de acceso basado en roles)</h3>
+    <p>El acceso a cada ruta se controla mediante dependencias inyectables en FastAPI (<code>app/api/deps.py</code>). El JWT incluye el campo <code>role</code> que se verifica en cada petición sin consultar la base de datos (salvo el refresh).</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operación</th><th>admin</th><th>directivo</th><th>usuario</th></tr></thead>
+        <tbody>
+          <tr><td>Ver dashboards e indicadores</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Exportar reportes PDF</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Subir archivos CSV/Excel</td><td>✅</td><td>❌</td><td>❌</td></tr>
+          <tr><td>Gestionar usuarios</td><td>✅</td><td>✅</td><td>❌</td></tr>
+          <tr><td>Ver bitácora de auditoría</td><td>✅</td><td>✅</td><td>❌</td></tr>
+          <tr><td>Configurar sistema</td><td>✅</td><td>❌</td><td>❌</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       10. CARGA DE ARCHIVOS CSV / EXCEL
+  ══════════════════════════════════════════ -->
+  <section id="s10">
+    <h2 class="section-title"><span class="num">10</span>Carga de archivos CSV / Excel</h2>
+
+    <p>El sistema acepta archivos en formato <strong>CSV</strong> (delimitado por comas) o <strong>Excel (.xlsx, .xls)</strong>. Los nombres de columnas son insensibles a mayúsculas y espacios laterales se eliminan automáticamente.</p>
+
+    <h3>Proceso de carga paso a paso</h3>
+    <ol>
+      <li>El administrador selecciona el archivo y el tipo de dataset en la interfaz de carga (<em>Cargas</em>).</li>
+      <li>El frontend envía el archivo al endpoint <code>POST /api/v1/uploads</code>.</li>
+      <li>El backend guarda el archivo en disco (<code>/data/uploads/</code>) y encola una tarea en Redis.</li>
+      <li>Un worker Celery toma la tarea y ejecuta la validación y carga.</li>
+      <li>El frontend hace polling cada 3 segundos hasta que el estado cambia.</li>
+      <li>Al terminar, el job reporta filas válidas, filas con error y detalle de errores.</li>
+    </ol>
+
+    <h3>Estados del job de carga</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Estado</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill pill-amber">pending</span></td><td>El job fue creado, espera ser tomado por un worker</td></tr>
+          <tr><td><span class="pill pill-blue">processing</span></td><td>El worker está leyendo y validando el archivo</td></tr>
+          <tr><td><span class="pill pill-green">completed</span></td><td>Carga exitosa (puede tener filas con error reportadas)</td></tr>
+          <tr><td><span class="pill pill-red">failed</span></td><td>Error grave (p.ej. columnas faltantes, archivo corrupto)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Formatos de CSV por tipo de dataset</h3>
+
+    <h4>1. Matrícula (<code>dataset_type=matricula</code>)</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Tipo</th><th>Requerida</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><code>ciclo_escolar</code></td><td>texto</td><td>✅</td><td>Ej: <code>2025-2026</code></td></tr>
+          <tr><td><code>cuatrimestre</code></td><td>entero</td><td>✅</td><td>1, 2 o 3</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>texto</td><td>✅</td><td>Nombre del programa</td></tr>
+          <tr><td><code>total</code></td><td>entero</td><td>✅</td><td>Total de alumnos inscritos</td></tr>
+          <tr><td><code>nuevo_ingreso</code></td><td>entero</td><td>✅</td><td>Alumnos de primer ingreso</td></tr>
+          <tr><td><code>bajas_reprobacion</code></td><td>entero</td><td>✅</td><td>Bajas por reprobación</td></tr>
+          <tr><td><code>bajas_desercion</code></td><td>entero</td><td>✅</td><td>Bajas por deserción</td></tr>
+          <tr><td><code>hombres</code></td><td>entero</td><td>✅</td><td>Total de hombres</td></tr>
+          <tr><td><code>mujeres</code></td><td>entero</td><td>✅</td><td>Total de mujeres</td></tr>
+          <tr><td><code>poblacion_edad_escolar</code></td><td>entero</td><td>❌</td><td>Población en edad escolar del municipio</td></tr>
+          <tr><td><code>egresados_nms</code></td><td>entero</td><td>❌</td><td>Egresados del nivel medio superior</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>2. Evaluación Académica (<code>dataset_type=evaluacion_academica</code>)</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Tipo</th><th>Requerida</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><code>ciclo_escolar</code></td><td>texto</td><td>✅</td><td>Período académico</td></tr>
+          <tr><td><code>cuatrimestre</code></td><td>entero</td><td>✅</td><td>1, 2 o 3</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>texto</td><td>✅</td><td>Nombre del programa</td></tr>
+          <tr><td><code>promedio_pe</code></td><td>decimal</td><td>✅</td><td>Promedio general del programa (ej: 8.75)</td></tr>
+          <tr><td><code>num_pe</code></td><td>entero</td><td>✅</td><td>Número de programas evaluados</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>3. Titulación (<code>dataset_type=titulacion</code>)</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Tipo</th><th>Requerida</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><code>generacion</code></td><td>texto</td><td>✅</td><td>Identificador de generación (ej: <code>2020-2023</code>)</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>texto</td><td>✅</td><td>Nombre del programa</td></tr>
+          <tr><td><code>matricula_generacional</code></td><td>entero</td><td>✅</td><td>Alumnos que ingresaron en esa generación</td></tr>
+          <tr><td><code>concluyeron_estudios</code></td><td>entero</td><td>✅</td><td>Alumnos que terminaron todas las materias</td></tr>
+          <tr><td><code>egresados</code></td><td>entero</td><td>✅</td><td>Alumnos que obtuvieron el grado de egresado</td></tr>
+          <tr><td><code>titulados</code></td><td>entero</td><td>✅</td><td>Alumnos que obtuvieron su título</td></tr>
+          <tr><td><code>ingresados_ns</code></td><td>entero</td><td>❌</td><td>Alumnos ingresados en nivel superior (opcional)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>4. Evaluación Docente (<code>dataset_type=evaluacion_docente</code>)</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Tipo</th><th>Requerida</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td><code>ciclo_escolar</code></td><td>texto</td><td>✅</td><td>Período académico</td></tr>
+          <tr><td><code>docente_id</code></td><td>texto</td><td>✅</td><td>Identificador único del docente</td></tr>
+          <tr><td><code>docente_nombre</code></td><td>texto</td><td>✅</td><td>Nombre completo del docente</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>texto</td><td>✅</td><td>Programa donde imparte clases</td></tr>
+          <tr><td><code>evaluador_tipo</code></td><td>texto</td><td>✅</td><td>Solo acepta: <code>alumno</code> o <code>directivo</code></td></tr>
+          <tr><td><code>puntaje</code></td><td>decimal</td><td>✅</td><td>Puntaje de la evaluación (ej: 9.5)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <strong>Manejo de errores por fila</strong>
+      Las filas con datos inválidos (tipo incorrecto, valor fuera de rango, campo requerido vacío) se reportan en el campo <code>errors_detail</code> del job, pero <strong>no abortan la carga completa</strong>. Las filas válidas se insertan correctamente.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       11. FÓRMULAS E INDICADORES
+  ══════════════════════════════════════════ -->
+  <section id="s11">
+    <h2 class="section-title"><span class="num">11</span>Fórmulas e indicadores</h2>
+
+    <p>Las fórmulas estadísticas están centralizadas en <code>backend/app/services/formulas.py</code> para facilitar su verificación y auditoría.</p>
+
+    <h3>Matrícula actual</h3>
+    <p>Calcula la matrícula efectiva descontando bajas y sumando nuevo ingreso.</p>
+    <div class="formula">Matrícula Actual = Total − Bajas Reprobación − Bajas Deserción + Nuevo Ingreso</div>
+
+    <h3>Porcentaje (base de todos los indicadores relativos)</h3>
+    <div class="formula">Porcentaje = (Numerador / Denominador) × 100</div>
+    <p>Si el denominador es 0, el resultado es 0 (sin división por cero).</p>
+
+    <h3>Tasa de Reprobación</h3>
+    <div class="formula">% Reprobación = (Bajas Reprobación / Total Matrícula) × 100</div>
+
+    <h3>Tasa de Deserción</h3>
+    <div class="formula">% Deserción = (Bajas Deserción / Total Matrícula) × 100</div>
+
+    <h3>Eficiencia Terminal</h3>
+    <p>Se calcula sobre un máximo de <strong>3 generaciones</strong> para que el indicador sea comparable entre períodos.</p>
+    <div class="formula">% Eficiencia Terminal = (Egresados / Matrícula Generacional) × 100</div>
+
+    <h3>Tasa de Titulación</h3>
+    <div class="formula">% Titulación = (Titulados / Egresados) × 100</div>
+
+    <h3>Aprovechamiento Académico</h3>
+    <p>El promedio ponderado se calcula directamente desde el dataset <code>evaluacion_academica</code>:</p>
+    <div class="formula">Promedio General = Σ(promedio_pe × num_pe) / Σ(num_pe)</div>
+
+    <h3>Evaluación Docente</h3>
+    <p>Se calcula el promedio de puntaje separado por tipo de evaluador:</p>
+    <div class="formula">Promedio Docente = Σ(puntajes) / N evaluaciones  [por tipo: alumno | directivo]</div>
+
+    <div class="callout info">
+      <strong>Cobertura de edad escolar (indicador opcional)</strong>
+      Si el CSV de matrícula incluye <code>poblacion_edad_escolar</code> y <code>egresados_nms</code>, el sistema puede calcular:<br>
+      <strong>% Cobertura = (Total Matrícula / Población Edad Escolar) × 100</strong>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       12. FRONTEND
+  ══════════════════════════════════════════ -->
+  <section id="s12">
+    <h2 class="section-title"><span class="num">12</span>Frontend</h2>
+
+    <h3>Estructura de páginas</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ruta</th><th>Componente</th><th>Descripción</th><th>Rol requerido</th></tr></thead>
+        <tbody>
+          <tr><td><code>/login</code></td><td>Login</td><td>Formulario de autenticación</td><td>Público</td></tr>
+          <tr><td><code>/</code></td><td>Dashboard</td><td>Resumen general de indicadores con tarjetas KPI</td><td>usuario</td></tr>
+          <tr><td><code>/matricula</code></td><td>Matricula</td><td>Gráficas y tablas de matrícula por programa y período</td><td>usuario</td></tr>
+          <tr><td><code>/rendimiento</code></td><td>Rendimiento</td><td>Aprovechamiento, reprobación y deserción</td><td>usuario</td></tr>
+          <tr><td><code>/eficiencia</code></td><td>Eficiencia</td><td>Eficiencia terminal y tasas de titulación</td><td>usuario</td></tr>
+          <tr><td><code>/docentes</code></td><td>Docentes</td><td>Evaluación docente por tipo de evaluador</td><td>usuario</td></tr>
+          <tr><td><code>/cargas</code></td><td>Cargas</td><td>Subida y monitoreo de archivos CSV/Excel</td><td>admin</td></tr>
+          <tr><td><code>/admin/usuarios</code></td><td>Usuarios</td><td>CRUD de usuarios del sistema</td><td>admin / directivo</td></tr>
+          <tr><td><code>/admin/auditoria</code></td><td>AuditLog</td><td>Bitácora de acciones del sistema</td><td>directivo</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Gestión de estado</h3>
+    <div class="cols2">
+      <div class="card">
+        <h4>TanStack Query (datos del servidor)</h4>
+        <p>Gestiona las peticiones a la API, caché automático, revalidación y estados de carga/error. Elimina la necesidad de manejar manualmente los <code>useEffect</code> de fetching.</p>
+      </div>
+      <div class="card">
+        <h4>Zustand (estado del cliente)</h4>
+        <p>Almacena el estado de filtros activos (subsistema, ciclo escolar, cuatrimestre) que se comparten entre todos los dashboards. También guarda el token JWT y los datos del usuario autenticado.</p>
+      </div>
+    </div>
+
+    <h3>Gráficas</h3>
+    <p>Todas las visualizaciones usan <strong>Apache ECharts</strong> a través de <code>echarts-for-react</code>. Tipos de gráficas implementadas:</p>
+    <ul>
+      <li><strong>Barras agrupadas</strong>: comparativa por programa educativo</li>
+      <li><strong>Líneas</strong>: tendencia temporal por ciclo escolar</li>
+      <li><strong>Pastel / Dona</strong>: distribución por género o tipo</li>
+      <li><strong>Barras apiladas</strong>: composición de matrícula (altas, bajas, permanencia)</li>
+    </ul>
+
+    <h3>Rutas protegidas</h3>
+    <p>El componente <code>ProtectedRoute</code> verifica el token JWT y el rol antes de renderizar cada página. Si el token expiró, redirige a <code>/login</code>. Si el rol es insuficiente, redirige al dashboard.</p>
+<pre><code>// Ejemplo de ruta protegida en App.tsx
+&lt;Route element={&lt;ProtectedRoute allowedRoles={["admin"]} /&gt;}&gt;
+  &lt;Route path="cargas" element={&lt;Cargas /&gt;} /&gt;
+&lt;/Route&gt;</code></pre>
+
+    <h3>Exportación desde el frontend</h3>
+    <p>El frontend incluye las bibliotecas <code>jspdf</code> y <code>html2canvas</code> para capturas de dashboard en PDF, y <code>xlsx</code> para exportar tablas a Excel directamente desde el navegador.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       13. SUBSISTEMAS
+  ══════════════════════════════════════════ -->
+  <section id="s13">
+    <h2 class="section-title"><span class="num">13</span>Subsistemas</h2>
+
+    <p>La plataforma es <strong>multi-tenant por subsistema</strong>: cada dato (matrícula, evaluaciones, docentes) está asociado a un subsistema mediante <code>subsistema_id</code>. Los usuarios pueden estar asignados a un subsistema específico, lo que limita los datos que pueden ver.</p>
+
+    <p>Los subsistemas se pre-cargan en la migración <code>0002_seed_subsistemas.py</code>:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Código</th><th>Nombre</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>TES</td><td>Tecnológicos de Estudios Superiores</td></tr>
+          <tr><td>2</td><td>EST</td><td>Estatales</td></tr>
+          <tr><td>3</td><td>INT</td><td>Interculturales</td></tr>
+          <tr><td>4</td><td>TEC</td><td>Tecnológicas</td></tr>
+          <tr><td>5</td><td>POL</td><td>Politécnicas</td></tr>
+          <tr><td>6</td><td>NOR</td><td>Normales</td></tr>
+          <tr><td>7</td><td>PAR</td><td>Particulares</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>Aislamiento de datos</strong>
+      Un usuario con <code>subsistema_id = 3</code> solo verá los datos de Interculturales. Un administrador sin subsistema asignado ve todos los datos de todos los subsistemas.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       14. ROLES Y PERMISOS
+  ══════════════════════════════════════════ -->
+  <section id="s14">
+    <h2 class="section-title"><span class="num">14</span>Roles y permisos</h2>
+
+    <p>El sistema implementa tres roles con permisos diferenciados. El rol se almacena en la tabla <code>users</code> y se incluye en el payload del JWT para verificación sin base de datos.</p>
+
+    <h3>Flujo de gestión de usuarios</h3>
+    <div class="diagram">1. Admin inicia sesión
+2. Admin crea nuevo usuario con: nombre, email, contraseña, rol, subsistema
+3. Usuario recibe sus credenciales por canal externo
+4. Usuario inicia sesión → recibe JWT con su rol
+5. En cada petición: backend verifica rol del JWT → permite o rechaza</div>
+
+    <h3>Gestión de contraseñas</h3>
+    <ul>
+      <li>Las contraseñas nunca se almacenan en texto plano.</li>
+      <li>Al crear un usuario, el backend hashea la contraseña con Argon2 antes de guardarla.</li>
+      <li>El administrador puede resetear la contraseña de cualquier usuario editando el perfil.</li>
+      <li>No existe actualmente un flujo de "recuperar contraseña" por email (requiere configuración de servidor SMTP externo).</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       15. EXPORTACIÓN DE REPORTES PDF
+  ══════════════════════════════════════════ -->
+  <section id="s15">
+    <h2 class="section-title"><span class="num">15</span>Exportación de reportes PDF</h2>
+
+    <p>El backend genera reportes PDF mediante <strong>WeasyPrint</strong> y templates <strong>Jinja2</strong>. WeasyPrint convierte HTML+CSS a PDF de alta calidad, permitiendo incluir gráficas y tablas formateadas profesionalmente.</p>
+
+    <h3>Proceso de generación</h3>
+    <ol>
+      <li>El usuario selecciona el tipo de reporte y el período desde la interfaz.</li>
+      <li>El frontend envía <code>POST /api/v1/reports/pdf</code> con los parámetros de filtro.</li>
+      <li>El backend consulta los datos en PostgreSQL.</li>
+      <li>Renderiza el template Jinja2 con los datos.</li>
+      <li>WeasyPrint convierte el HTML resultante a PDF.</li>
+      <li>El PDF se devuelve como descarga directa (<code>Content-Type: application/pdf</code>).</li>
+    </ol>
+
+    <h3>Exportación desde el navegador</h3>
+    <p>Adicionalmente, cada dashboard tiene botones de exportación rápida que usan las bibliotecas del frontend:</p>
+    <ul>
+      <li><strong>PDF de pantalla</strong>: usa <code>html2canvas</code> + <code>jsPDF</code> para capturar la vista actual.</li>
+      <li><strong>Excel</strong>: usa <code>xlsx</code> para exportar los datos tabulares directamente.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       16. PRUEBAS AUTOMATIZADAS
+  ══════════════════════════════════════════ -->
+  <section id="s16">
+    <h2 class="section-title"><span class="num">16</span>Pruebas automatizadas</h2>
+
+    <h3>Backend (pytest)</h3>
+    <p>Las pruebas están en <code>backend/tests/</code>. Para ejecutarlas:</p>
+<pre><code># En entorno de desarrollo con Docker
+docker compose -f docker-compose.dev.yml exec backend pytest
+
+# Con reporte de cobertura
+docker compose -f docker-compose.dev.yml exec backend pytest --cov=app --cov-report=html</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Archivo</th><th>Qué prueba</th></tr></thead>
+        <tbody>
+          <tr><td><code>tests/test_csv_processor.py</code></td><td>Validación de columnas, tipos de campo, manejo de errores por fila, soporte para Excel</td></tr>
+          <tr><td><code>tests/test_formulas.py</code></td><td>Corrección de las fórmulas estadísticas (casos normales y bordes como división por cero)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Frontend (Vitest)</h3>
+<pre><code># Ejecutar una vez
+cd frontend && npm run test
+
+# Modo observación (watch)
+cd frontend && npm run test:watch</code></pre>
+
+    <div class="callout info">
+      <strong>Configuración de pruebas</strong>
+      El backend usa <code>pytest-asyncio</code> en modo <code>auto</code> para pruebas asíncronas. La variable <code>ENVIRONMENT=testing</code> puede usarse para configurar una base de datos de prueba separada.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       17. MIGRACIONES DE BASE DE DATOS
+  ══════════════════════════════════════════ -->
+  <section id="s17">
+    <h2 class="section-title"><span class="num">17</span>Migraciones de base de datos</h2>
+
+    <p>El esquema de la base de datos se gestiona con <strong>Alembic</strong>. Las migraciones están en <code>backend/alembic/versions/</code> y se aplican automáticamente al iniciar con <code>start.sh</code>.</p>
+
+    <h3>Historial de migraciones</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>0001</td><td>Esquema inicial: tablas subsistemas, users, matricula, evaluacion_academica, evaluacion_docente, titulacion, upload_jobs</td></tr>
+          <tr><td>0002</td><td>Datos iniciales: inserta los 7 subsistemas</td></tr>
+          <tr><td>0003</td><td>Agrega campos de auditoría a upload_jobs</td></tr>
+          <tr><td>0004</td><td>Corrige la longitud del campo status en upload_jobs</td></tr>
+          <tr><td>0005</td><td>Agrega el rol directivo y tabla audit_logs</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Comandos de Alembic</h3>
+<pre><code># Aplicar todas las migraciones pendientes
+docker compose exec backend alembic upgrade head
+
+# Ver el estado actual
+docker compose exec backend alembic current
+
+# Ver el historial
+docker compose exec backend alembic history
+
+# Crear una nueva migración (tras modificar un modelo)
+docker compose exec backend alembic revision --autogenerate -m "descripcion_del_cambio"
+
+# Revertir la última migración
+docker compose exec backend alembic downgrade -1</code></pre>
+
+    <div class="callout danger">
+      <strong>Advertencia</strong>
+      Nunca ejecutes <code>alembic downgrade</code> en producción sin un respaldo completo de la base de datos. Las migraciones de reversión pueden eliminar datos permanentemente.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       18. CI/CD
+  ══════════════════════════════════════════ -->
+  <section id="s18">
+    <h2 class="section-title"><span class="num">18</span>CI/CD</h2>
+
+    <p>El repositorio incluye un workflow de GitHub Actions en <code>.github/workflows/deploy.yml</code> configurado para ejecutarse en un <strong>runner self-hosted</strong> (el propio servidor de la institución).</p>
+
+    <h3>Flujo del pipeline</h3>
+    <div class="diagram">git push → GitHub
+       │
+       ▼
+GitHub Actions (runner self-hosted en el servidor)
+       │
+       ├── 1. Checkout del código
+       ├── 2. Construir imágenes Docker
+       ├── 3. Ejecutar pruebas (pytest + vitest)
+       └── 4. Si pasan → docker compose up -d --build
+                        → alembic upgrade head
+                        → Sistema actualizado sin downtime</div>
+
+    <h3>Configuración del runner self-hosted</h3>
+    <p>El runner se instala directamente en el servidor de producción. Ventajas:</p>
+    <ul>
+      <li>No se expone el servidor a Internet; GitHub Actions envía los jobs al runner.</li>
+      <li>El deploy ocurre sin necesidad de SSH externo ni credenciales adicionales.</li>
+      <li>Las imágenes Docker se construyen localmente en el servidor, sin registry externo.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       19. MANTENIMIENTO Y OPERACIÓN
+  ══════════════════════════════════════════ -->
+  <section id="s19">
+    <h2 class="section-title"><span class="num">19</span>Mantenimiento y operación</h2>
+
+    <h3>Monitoreo de salud</h3>
+<pre><code># Verificar que todos los servicios están corriendo
+docker compose ps
+
+# Ver salud del backend
+curl http://localhost/api/health
+
+# Logs en tiempo real de todos los servicios
+docker compose logs -f
+
+# Logs solo del backend
+docker compose logs -f backend
+
+# Logs solo del worker
+docker compose logs -f worker</code></pre>
+
+    <h3>Respaldo de datos</h3>
+<pre><code># Exportar la base de datos completa
+docker compose exec postgres pg_dump -U academia academia > backup_$(date +%Y%m%d).sql
+
+# Restaurar desde respaldo
+docker compose exec -T postgres psql -U academia academia < backup_20260527.sql</code></pre>
+
+    <div class="callout warn">
+      <strong>Programar respaldos automáticos</strong>
+      Se recomienda configurar un cron job en el servidor para ejecutar el respaldo diariamente y almacenarlo en un destino externo (NAS, S3, etc.).
+    </div>
+
+    <h3>Persistencia de datos</h3>
+    <p>Los datos se almacenan en volúmenes Docker nombrados. Estos persisten aunque se reinicien los contenedores.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Volumen</th><th>Contenido</th></tr></thead>
+        <tbody>
+          <tr><td><code>postgres_data</code></td><td>Todos los datos de la base de datos PostgreSQL</td></tr>
+          <tr><td><code>redis_data</code></td><td>Cola de tareas y caché de Redis (persistente con AOF)</td></tr>
+          <tr><td><code>uploads_data</code></td><td>Archivos CSV/Excel subidos por los usuarios</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Actualización del sistema</h3>
+<pre><code># 1. Obtener el código más reciente
+git pull origin main
+
+# 2. Reconstruir y reiniciar
+docker compose up -d --build
+
+# 3. Aplicar nuevas migraciones (si las hay)
+docker compose exec backend alembic upgrade head</code></pre>
+
+    <h3>Escalado de workers</h3>
+    <p>Si el volumen de archivos a procesar es alto, se pueden escalar los workers Celery sin reiniciar el resto del sistema:</p>
+<pre><code># Escalar a 4 workers
+docker compose up -d --scale worker=4
+
+# Volver a 2 workers (default)
+docker compose up -d --scale worker=2</code></pre>
+
+    <h3>Resolución de problemas comunes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Síntoma</th><th>Causa probable</th><th>Solución</th></tr></thead>
+        <tbody>
+          <tr><td>El sistema no inicia</td><td>Puerto 80 ocupado</td><td>Cambiar <code>HTTP_PORT</code> en <code>.env</code> o liberar el puerto</td></tr>
+          <tr><td>Error 500 al hacer login</td><td>PostgreSQL no conecta</td><td><code>docker compose logs postgres</code> — verificar contraseña en <code>.env</code></td></tr>
+          <tr><td>Job de carga se queda en "pending"</td><td>Worker no está corriendo</td><td><code>docker compose up -d worker</code></td></tr>
+          <tr><td>Job falla con "Columnas faltantes"</td><td>El CSV no tiene el formato correcto</td><td>Revisar la sección 10 de este manual y el error detallado en el job</td></tr>
+          <tr><td>Token expirado constantemente</td><td>Relojes del servidor desincronizados</td><td>Sincronizar el reloj del servidor con NTP (<code>timedatectl</code>)</td></tr>
+          <tr><td>Frontend en blanco</td><td>CORS mal configurado</td><td>Agregar el dominio correcto a <code>ALLOWED_ORIGINS</code> en <code>.env</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       20. GLOSARIO
+  ══════════════════════════════════════════ -->
+  <section id="s20">
+    <h2 class="section-title"><span class="num">20</span>Glosario</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Término</th><th>Definición</th></tr></thead>
+        <tbody>
+          <tr><td><strong>API REST</strong></td><td>Interfaz de programación que permite a distintos sistemas comunicarse mediante el protocolo HTTP usando verbos estándar (GET, POST, PATCH, DELETE)</td></tr>
+          <tr><td><strong>Argon2</strong></td><td>Algoritmo moderno y seguro para convertir contraseñas en hashes irreversibles. Ganador del Password Hashing Competition 2015</td></tr>
+          <tr><td><strong>Celery</strong></td><td>Sistema de cola de tareas para Python que permite ejecutar operaciones pesadas en segundo plano sin bloquear la respuesta al usuario</td></tr>
+          <tr><td><strong>CORS</strong></td><td>Mecanismo de seguridad del navegador que controla qué dominios pueden hacer peticiones a la API</td></tr>
+          <tr><td><strong>CSV</strong></td><td>Formato de archivo de texto donde los valores están separados por comas; usado para intercambio de datos tabulares</td></tr>
+          <tr><td><strong>Docker</strong></td><td>Plataforma que empaqueta aplicaciones en contenedores aislados, garantizando que funcionen igual en cualquier servidor</td></tr>
+          <tr><td><strong>Docker Compose</strong></td><td>Herramienta para definir y ejecutar múltiples contenedores Docker como un sistema integrado</td></tr>
+          <tr><td><strong>ECharts</strong></td><td>Biblioteca de visualización de datos de Apache; genera gráficas interactivas en el navegador</td></tr>
+          <tr><td><strong>FastAPI</strong></td><td>Framework web moderno para Python, optimizado para velocidad y con generación automática de documentación interactiva</td></tr>
+          <tr><td><strong>Hot-reload</strong></td><td>Mecanismo que recarga automáticamente la aplicación cuando el código fuente cambia, sin necesidad de reiniciar manualmente</td></tr>
+          <tr><td><strong>JWT</strong></td><td>JSON Web Token: formato compacto y seguro para transmitir información de autenticación entre cliente y servidor</td></tr>
+          <tr><td><strong>Matrícula</strong></td><td>Total de alumnos inscritos activos en un programa educativo en un período determinado</td></tr>
+          <tr><td><strong>Multi-tenant</strong></td><td>Arquitectura donde un mismo sistema sirve a múltiples organizaciones (subsistemas) con aislamiento de datos entre ellas</td></tr>
+          <tr><td><strong>Nginx</strong></td><td>Servidor web de alto rendimiento usado como proxy inverso y para servir el frontend estático</td></tr>
+          <tr><td><strong>ORM</strong></td><td>Object-Relational Mapper: biblioteca que permite trabajar con la base de datos usando objetos Python en lugar de SQL directo</td></tr>
+          <tr><td><strong>PostgreSQL</strong></td><td>Sistema de gestión de base de datos relacional robusto y de código abierto</td></tr>
+          <tr><td><strong>Pydantic</strong></td><td>Biblioteca Python para validación de datos mediante tipado; garantiza que los datos de entrada tengan el formato correcto</td></tr>
+          <tr><td><strong>RBAC</strong></td><td>Role-Based Access Control: sistema de control de acceso donde los permisos se asignan según el rol del usuario</td></tr>
+          <tr><td><strong>React</strong></td><td>Biblioteca JavaScript para construir interfaces de usuario componibles y reactivas</td></tr>
+          <tr><td><strong>Redis</strong></td><td>Almacén de datos en memoria usado como broker de mensajes para Celery y como caché</td></tr>
+          <tr><td><strong>SPA</strong></td><td>Single Page Application: aplicación web que carga una sola página HTML y actualiza el contenido dinámicamente sin recargas completas</td></tr>
+          <tr><td><strong>SQLAlchemy</strong></td><td>ORM para Python; gestiona la comunicación con PostgreSQL de forma asíncrona</td></tr>
+          <tr><td><strong>Subsistema</strong></td><td>Agrupación organizacional de planteles educativos (ej: Tecnológicos, Normales, Politécnicas)</td></tr>
+          <tr><td><strong>TanStack Query</strong></td><td>Biblioteca de gestión de estado del servidor para React; maneja caché, sincronización y estados de carga automáticamente</td></tr>
+          <tr><td><strong>TypeScript</strong></td><td>Superset de JavaScript con tipado estático que previene errores en tiempo de compilación</td></tr>
+          <tr><td><strong>Vite</strong></td><td>Herramienta de construcción moderna para proyectos frontend; muy rápida en desarrollo gracias al uso de módulos ES nativos</td></tr>
+          <tr><td><strong>WeasyPrint</strong></td><td>Biblioteca Python que convierte HTML y CSS a documentos PDF de alta calidad</td></tr>
+          <tr><td><strong>Zustand</strong></td><td>Biblioteca ligera de gestión de estado global para React; más simple que Redux</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer style="margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;color:var(--gray-lt);font-size:0.82rem;">
+    <p>Plataforma de Análisis Estadístico Académico · v0.1.0 · Mayo 2026</p>
+    <p>Este documento es confidencial y de uso interno de la Dirección Académica.</p>
+  </footer>
+
+</div><!-- /.page-wrapper -->
+
+<script>
+  /* Resaltar la sección activa en el TOC al hacer scroll */
+  const sections = document.querySelectorAll('section[id]');
+  const tocLinks = document.querySelectorAll('.toc a[href^="#"]');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        tocLinks.forEach(l => l.style.fontWeight = '');
+        const active = document.querySelector(`.toc a[href="#${e.target.id}"]`);
+        if (active) active.style.fontWeight = '700';
+      }
+    });
+  }, { threshold: 0.2 });
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

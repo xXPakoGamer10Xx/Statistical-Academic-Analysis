@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual de Usuario — Plataforma de Análisis Estadístico Académico</title>
+  <style>
+    :root {
+      --blue:    #1e40af;
+      --blue-lt: #3b82f6;
+      --blue-bg: #eff6ff;
+      --gray:    #374151;
+      --gray-lt: #6b7280;
+      --gray-bg: #f9fafb;
+      --green:   #166534;
+      --green-bg:#f0fdf4;
+      --red:     #991b1b;
+      --red-bg:  #fef2f2;
+      --amber:   #92400e;
+      --amber-bg:#fffbeb;
+      --border:  #e5e7eb;
+      --radius:  8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--gray);
+      background: #fff;
+    }
+
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem 5rem;
+    }
+
+    /* ── Portada ── */
+    .cover {
+      text-align: center;
+      padding: 4.5rem 2rem 3rem;
+      border-bottom: 3px solid var(--blue);
+      margin-bottom: 3rem;
+    }
+    .cover .badge {
+      display: inline-block;
+      background: var(--blue-bg);
+      color: var(--blue);
+      border: 1px solid #bfdbfe;
+      border-radius: 99px;
+      padding: 0.3rem 1.1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.3rem;
+    }
+    .cover h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--blue);
+      line-height: 1.2;
+      margin-bottom: 0.7rem;
+    }
+    .cover .subtitle {
+      font-size: 1.1rem;
+      color: var(--gray-lt);
+      margin-bottom: 2.2rem;
+    }
+    .cover-meta {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      font-size: 0.88rem;
+      color: var(--gray-lt);
+    }
+    .cover-meta strong { color: var(--gray); display: block; }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--gray-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      margin-bottom: 3rem;
+    }
+    .toc h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--gray-lt);
+      margin-bottom: 1rem;
+    }
+    .toc ol { padding-left: 1.2rem; column-count: 2; column-gap: 2rem; }
+    .toc li { margin-bottom: 0.3rem; }
+    .toc a { color: var(--blue); text-decoration: none; font-size: 0.92rem; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── Secciones ── */
+    section { margin-bottom: 3.5rem; }
+
+    h2.section-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--blue);
+      border-bottom: 2px solid var(--blue-bg);
+      padding-bottom: 0.4rem;
+      margin-bottom: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+    h2.section-title .num {
+      background: var(--blue);
+      color: #fff;
+      border-radius: 50%;
+      width: 1.9rem;
+      height: 1.9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    h3 { font-size: 1.1rem; font-weight: 700; color: var(--gray); margin: 1.8rem 0 0.6rem; }
+    h4 { font-size: 0.98rem; font-weight: 700; color: #1e3a8a; margin: 1.3rem 0 0.4rem; }
+    p  { margin-bottom: 0.85rem; }
+    ul, ol { padding-left: 1.5rem; margin-bottom: 0.85rem; }
+    li { margin-bottom: 0.4rem; }
+
+    /* ── Callouts ── */
+    .callout {
+      border-left: 4px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.85rem 1.2rem;
+      margin: 1rem 0;
+      font-size: 0.93rem;
+    }
+    .callout.info   { border-color: var(--blue-lt);  background: var(--blue-bg);  color: #1e3a8a; }
+    .callout.warn   { border-color: #f59e0b;         background: var(--amber-bg); color: var(--amber); }
+    .callout.ok     { border-color: #22c55e;         background: var(--green-bg); color: var(--green); }
+    .callout.danger { border-color: #ef4444;         background: var(--red-bg);   color: var(--red); }
+    .callout strong { display: block; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.25rem; }
+
+    /* ── Pasos numerados ── */
+    .steps { list-style: none; padding: 0; margin: 1rem 0 1.4rem; counter-reset: steps; }
+    .steps li {
+      counter-increment: steps;
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(steps);
+      background: var(--blue);
+      color: #fff;
+      border-radius: 50%;
+      width: 1.8rem;
+      height: 1.8rem;
+      min-width: 1.8rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 800;
+      margin-top: 0.1rem;
+    }
+    .steps li .step-body { flex: 1; }
+    .steps li strong { display: block; margin-bottom: 0.1rem; }
+
+    /* ── Pantallas simuladas ── */
+    .screen {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1rem 0 1.4rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .screen-bar {
+      background: var(--blue);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .screen-bar::before { content: '●'; opacity: .5; font-size: 1.1rem; }
+    .screen-body {
+      padding: 1.1rem 1.3rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    .screen-body .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      margin-bottom: 0.8rem;
+    }
+    .screen-body label { font-weight: 700; font-size: 0.82rem; color: var(--gray-lt); }
+    .screen-body .input-mock {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.4rem 0.7rem;
+      background: #fff;
+      color: var(--gray);
+      font-size: 0.88rem;
+    }
+    .btn-mock {
+      display: inline-block;
+      padding: 0.45rem 1.2rem;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: default;
+    }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-secondary { background: #fff; color: var(--blue); border: 1px solid var(--blue-lt); }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-red { background: #dc2626; color: #fff; }
+
+    /* ── Tabla ── */
+    .table-wrap { overflow-x: auto; margin: 0.8rem 0 1.3rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    thead tr { background: var(--blue); color: #fff; }
+    thead th { text-align: left; padding: 0.6rem 0.9rem; font-weight: 700; font-size: 0.82rem; }
+    tbody tr:nth-child(odd)  { background: var(--gray-bg); }
+    tbody tr:nth-child(even) { background: #fff; }
+    tbody td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+
+    /* ── Cards ── */
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0 1.4rem; }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+      background: var(--gray-bg);
+    }
+    .card .icon { font-size: 1.6rem; margin-bottom: 0.4rem; }
+    .card h4 { margin-top: 0; color: var(--blue); }
+    @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+
+    .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1rem 0; }
+    @media (max-width: 640px) { .cols2 { grid-template-columns: 1fr; } }
+
+    /* ── Pill ── */
+    .pill {
+      display: inline-block;
+      border-radius: 99px;
+      padding: 0.15em 0.7em;
+      font-size: 0.78em;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .pill-blue  { background: var(--blue-bg);  color: var(--blue); }
+    .pill-green { background: var(--green-bg); color: var(--green); }
+    .pill-gray  { background: #f1f5f9;         color: var(--gray-lt); }
+    .pill-amber { background: var(--amber-bg); color: var(--amber); }
+    .pill-red   { background: var(--red-bg);   color: var(--red); }
+
+    /* ── Separador ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+    /* ── FAQ ── */
+    .faq-item { border-bottom: 1px solid var(--border); padding: 1rem 0; }
+    .faq-q { font-weight: 700; color: var(--blue); margin-bottom: 0.4rem; font-size: 0.97rem; }
+    .faq-a { font-size: 0.92rem; color: var(--gray); }
+
+    /* ── Print ── */
+    @media print {
+      @page { size: A4; margin: 0; }
+      body { font-size: 11pt; line-height: 1.5; }
+      .page-wrapper { max-width: 100%; padding: 16mm 18mm 18mm 18mm; }
+      h2.section-title { font-size: 14pt; page-break-after: avoid; }
+      h3 { page-break-after: avoid; }
+      .toc { page-break-after: always; }
+      .cover { page-break-after: always; padding: 2rem 0 1.5rem; }
+      section { page-break-inside: avoid; }
+      .screen { page-break-inside: avoid; }
+      .callout { page-break-inside: avoid; }
+      .steps li { page-break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+      .toc a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- ═══════════════════════════════════════
+       PORTADA
+  ═══════════════════════════════════════ -->
+  <div class="cover">
+    <div class="badge">Manual de Usuario · v0.1.0</div>
+    <h1>Plataforma de Análisis<br>Estadístico Académico</h1>
+    <p class="subtitle">Guía completa para el uso del sistema — paso a paso y sin tecnicismos</p>
+    <div class="cover-meta">
+      <div><strong>Versión</strong>0.1.0</div>
+      <div><strong>Fecha</strong>Mayo 2026</div>
+      <div><strong>Autor</strong>León Sánchez Emiliano</div>
+      <div><strong>Audiencia</strong>Todos los usuarios del sistema</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TABLA DE CONTENIDOS
+  ═══════════════════════════════════════ -->
+  <nav class="toc">
+    <h2>Contenido</h2>
+    <ol>
+      <li><a href="#s1">¿Qué es esta plataforma?</a></li>
+      <li><a href="#s2">¿Quién puede usarla? (Roles)</a></li>
+      <li><a href="#s3">Cómo iniciar sesión</a></li>
+      <li><a href="#s4">Pantalla principal (Dashboard)</a></li>
+      <li><a href="#s5">Módulo de Matrícula</a></li>
+      <li><a href="#s6">Módulo de Rendimiento Académico</a></li>
+      <li><a href="#s7">Módulo de Eficiencia Terminal y Titulación</a></li>
+      <li><a href="#s8">Módulo de Evaluación Docente</a></li>
+      <li><a href="#s9">Cómo usar los filtros</a></li>
+      <li><a href="#s10">Exportar reportes en PDF y Excel</a></li>
+      <li><a href="#s11">Carga de archivos (solo administrador)</a></li>
+      <li><a href="#s12">Gestión de usuarios</a></li>
+      <li><a href="#s13">Bitácora de auditoría</a></li>
+      <li><a href="#s14">Preguntas frecuentes</a></li>
+      <li><a href="#s15">Glosario de términos</a></li>
+    </ol>
+  </nav>
+
+  <!-- ═══════════════════════════════════════
+       1. QUÉ ES LA PLATAFORMA
+  ═══════════════════════════════════════ -->
+  <section id="s1">
+    <h2 class="section-title"><span class="num">1</span>¿Qué es esta plataforma?</h2>
+
+    <p>La <strong>Plataforma de Análisis Estadístico Académico</strong> es un sistema web que permite a la Dirección Académica <strong>consultar, analizar y reportar</strong> los indicadores educativos institucionales de forma rápida y sencilla, sin necesidad de manejar hojas de cálculo complicadas.</p>
+
+    <p>En lugar de abrir archivos de Excel y hacer cálculos a mano, la plataforma hace todo automáticamente: tú solo seleccionas el período y el programa que quieres ver, y el sistema muestra las gráficas y números al instante.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="icon">📊</div>
+        <h4>Dashboards interactivos</h4>
+        <p>Gráficas que se actualizan al cambiar filtros, sin recargar la página.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📁</div>
+        <h4>Carga de datos</h4>
+        <p>Sube archivos CSV o Excel con los datos históricos y el sistema los procesa automáticamente.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📄</div>
+        <h4>Reportes en PDF</h4>
+        <p>Genera y descarga reportes formales con un solo clic, listos para presentar.</p>
+      </div>
+    </div>
+
+    <h3>¿Qué indicadores puedo consultar?</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Indicador</th><th>¿Qué me dice?</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Matrícula</strong></td><td>Cuántos alumnos están inscritos por programa, cuatrimestre y ciclo escolar</td></tr>
+          <tr><td><strong>Nuevo ingreso</strong></td><td>Cuántos alumnos entraron por primera vez</td></tr>
+          <tr><td><strong>Aprovechamiento</strong></td><td>El promedio general de calificaciones por programa educativo</td></tr>
+          <tr><td><strong>Reprobación</strong></td><td>Qué porcentaje de alumnos causó baja por reprobar</td></tr>
+          <tr><td><strong>Deserción</strong></td><td>Qué porcentaje de alumnos abandonó sus estudios</td></tr>
+          <tr><td><strong>Eficiencia Terminal</strong></td><td>Qué porcentaje de alumnos que ingresaron llegaron a egresar</td></tr>
+          <tr><td><strong>Titulación</strong></td><td>Qué porcentaje de egresados obtuvo su título</td></tr>
+          <tr><td><strong>Evaluación Docente</strong></td><td>Cómo califican los alumnos y directivos a los docentes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       2. ROLES
+  ═══════════════════════════════════════ -->
+  <section id="s2">
+    <h2 class="section-title"><span class="num">2</span>¿Quién puede usarla? (Roles)</h2>
+
+    <p>El sistema tiene tres tipos de usuarios. Dependiendo de tu rol, tendrás acceso a diferentes funciones.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rol</th><th>¿Quién lo tiene?</th><th>¿Qué puede hacer?</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="pill pill-red">Administrador</span></td>
+            <td>Responsable del sistema (área de TI o planeación)</td>
+            <td>Todo: gestionar usuarios, subir archivos de datos, ver todos los indicadores y reportes</td>
+          </tr>
+          <tr>
+            <td><span class="pill pill-blue">Directivo</span></td>
+            <td>Director, subdirector, coordinador</td>
+            <td>Ver y filtrar todos los indicadores, exportar reportes, gestionar usuarios, ver bitácora</td>
+          </tr>
+          <tr>
+            <td><span class="pill pill-gray">Usuario</span></td>
+            <td>Personal de planeación o académico</td>
+            <td>Ver y filtrar indicadores, exportar reportes (solo lectura)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>¿No sé cuál es mi rol?</strong>
+      Tu rol aparece en la parte superior del menú lateral cuando inicias sesión. Si necesitas más permisos, contacta al administrador del sistema.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       3. INICIAR SESIÓN
+  ═══════════════════════════════════════ -->
+  <section id="s3">
+    <h2 class="section-title"><span class="num">3</span>Cómo iniciar sesión</h2>
+
+    <p>Abre tu navegador (Chrome o Edge recomendados) y escribe la dirección que te proporcionó el administrador. Verás la pantalla de inicio de sesión.</p>
+
+    <div class="screen">
+      <div class="screen-bar">Plataforma de Análisis Estadístico Académico — Inicio de sesión</div>
+      <div class="screen-body">
+        <p style="text-align:center;color:var(--blue);font-weight:800;font-size:1.1rem;margin-bottom:1.2rem;">Iniciar sesión</p>
+        <div class="field">
+          <label>Correo electrónico</label>
+          <div class="input-mock">correo@universidad.edu</div>
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <div class="input-mock">••••••••••</div>
+        </div>
+        <div style="margin-top:0.8rem;">
+          <span class="btn-mock btn-primary">Entrar</span>
+        </div>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <div class="step-body">
+          <strong>Escribe tu correo electrónico institucional</strong>
+          Usa el correo exactamente como te lo proporcionaron (ej: <em>jperez@universidad.edu</em>). Las mayúsculas no importan.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Escribe tu contraseña</strong>
+          La contraseña sí distingue mayúsculas de minúsculas. Si es tu primera vez, usa la contraseña que te dio el administrador.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Haz clic en "Entrar"</strong>
+          Si los datos son correctos, entrarás directamente al Dashboard principal.
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout warn">
+      <strong>¿No puedes entrar?</strong>
+      Verifica que no tengas el Bloq Mayús activado. Si olvidaste tu contraseña, contacta al administrador para que la restablezca — el sistema no tiene función de "recuperar contraseña" por correo de forma automática.
+    </div>
+
+    <h3>Cerrar sesión</h3>
+    <p>Para salir de forma segura, haz clic en tu nombre en la esquina superior derecha del menú y selecciona <strong>"Cerrar sesión"</strong>. Nunca cierres solo la pestaña del navegador sin cerrar sesión, especialmente en computadoras compartidas.</p>
+
+    <div class="callout info">
+      <strong>Sesión automática</strong>
+      Por seguridad, la sesión se cierra automáticamente después de 15 minutos de inactividad. El sistema te pedirá entrar de nuevo. Tus datos no se pierden.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       4. DASHBOARD
+  ═══════════════════════════════════════ -->
+  <section id="s4">
+    <h2 class="section-title"><span class="num">4</span>Pantalla principal (Dashboard)</h2>
+
+    <p>Al iniciar sesión aterrizas en el <strong>Dashboard</strong>. Es la pantalla de resumen general que muestra los indicadores más importantes de un vistazo.</p>
+
+    <div class="screen">
+      <div class="screen-bar">Dashboard — Resumen general</div>
+      <div class="screen-body">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1rem;">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:0.7rem;text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--blue);">2,161</div>
+            <div style="font-size:0.75rem;color:var(--gray-lt);">Matrícula total</div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:0.7rem;text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:#16a34a;">7.8</div>
+            <div style="font-size:0.75rem;color:var(--gray-lt);">Promedio general</div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:0.7rem;text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:#dc2626;">5.4%</div>
+            <div style="font-size:0.75rem;color:var(--gray-lt);">Tasa de deserción</div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:0.7rem;text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:#d97706;">41%</div>
+            <div style="font-size:0.75rem;color:var(--gray-lt);">Eficiencia terminal</div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:0.8rem;font-size:0.82rem;color:var(--gray-lt);text-align:center;">
+          [ Gráfica de barras: Matrícula por programa educativo ]
+        </div>
+      </div>
+    </div>
+
+    <h3>Elementos de la pantalla</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Elemento</th><th>¿Para qué sirve?</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Tarjetas KPI (números grandes)</strong></td><td>Muestran el valor más reciente de cada indicador clave. Se actualizan según los filtros que apliques.</td></tr>
+          <tr><td><strong>Gráficas</strong></td><td>Representación visual de los datos. Puedes pasar el cursor sobre las barras o puntos para ver el valor exacto.</td></tr>
+          <tr><td><strong>Menú lateral izquierdo</strong></td><td>Acceso rápido a todos los módulos: Matrícula, Rendimiento, Eficiencia, Docentes, Cargas, etc.</td></tr>
+          <tr><td><strong>Barra de filtros</strong></td><td>Aparece en la parte superior. Permite filtrar por subsistema, ciclo escolar, cuatrimestre y programa educativo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Navegación entre módulos</h3>
+    <p>En el menú lateral izquierdo encontrarás todos los módulos disponibles según tu rol. Haz clic en cualquiera para ir a esa pantalla.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Icono en el menú</th><th>Módulo</th><th>Disponible para</th></tr></thead>
+        <tbody>
+          <tr><td>🏠 Inicio</td><td>Dashboard general</td><td>Todos</td></tr>
+          <tr><td>👥 Matrícula</td><td>Datos de inscripción</td><td>Todos</td></tr>
+          <tr><td>📈 Rendimiento</td><td>Aprovechamiento, reprobación y deserción</td><td>Todos</td></tr>
+          <tr><td>🎓 Eficiencia</td><td>Eficiencia terminal y titulación</td><td>Todos</td></tr>
+          <tr><td>👨‍🏫 Docentes</td><td>Evaluación docente</td><td>Todos</td></tr>
+          <tr><td>📂 Cargas</td><td>Subir archivos de datos</td><td>Solo Administrador</td></tr>
+          <tr><td>👤 Usuarios</td><td>Gestión de cuentas</td><td>Admin y Directivo</td></tr>
+          <tr><td>📋 Auditoría</td><td>Bitácora de acciones</td><td>Directivo y Admin</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       5. MATRÍCULA
+  ═══════════════════════════════════════ -->
+  <section id="s5">
+    <h2 class="section-title"><span class="num">5</span>Módulo de Matrícula</h2>
+
+    <p>Este módulo muestra la cantidad de alumnos inscritos, desglosada por programa educativo, cuatrimestre, ciclo escolar y género.</p>
+
+    <h3>¿Qué información puedo ver aquí?</h3>
+    <ul>
+      <li><strong>Matrícula total</strong> por programa y período</li>
+      <li><strong>Nuevo ingreso</strong> — alumnos que entraron por primera vez</li>
+      <li><strong>Distribución por género</strong> — cuántos hombres y mujeres</li>
+      <li><strong>Bajas por reprobación</strong> — alumnos que se fueron por reprobar</li>
+      <li><strong>Bajas por deserción</strong> — alumnos que abandonaron voluntariamente</li>
+      <li><strong>Comparativa histórica</strong> — cómo ha evolucionado la matrícula año con año</li>
+    </ul>
+
+    <h3>Cómo usar este módulo</h3>
+    <ol class="steps">
+      <li>
+        <div class="step-body">
+          <strong>Haz clic en "Matrícula" en el menú lateral</strong>
+          Verás la pantalla con gráficas y una tabla de datos.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Aplica los filtros que necesites</strong>
+          En la barra superior selecciona el ciclo escolar (ej: 2024-2025) y el cuatrimestre (Sep-Dic, Ene-Abr o May-Ago). Ver sección 9 para más detalles sobre filtros.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Explora las gráficas</strong>
+          Pasa el cursor sobre las barras para ver el número exacto de alumnos. Haz clic en los elementos de la leyenda para ocultar o mostrar series.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Revisa la tabla de detalle</strong>
+          Debajo de las gráficas encontrarás una tabla con todos los valores por programa educativo.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Exporta si lo necesitas</strong>
+          Usa los botones de exportación para descargar los datos en PDF o Excel (ver sección 10).
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout ok">
+      <strong>Consejo</strong>
+      Para ver la evolución histórica completa, deja el filtro de ciclo escolar en "Todos" y el sistema mostrará la tendencia desde el año más antiguo disponible.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       6. RENDIMIENTO
+  ═══════════════════════════════════════ -->
+  <section id="s6">
+    <h2 class="section-title"><span class="num">6</span>Módulo de Rendimiento Académico</h2>
+
+    <p>Muestra tres indicadores relacionados con el desempeño escolar: el <strong>aprovechamiento</strong> (promedio de calificaciones), la <strong>reprobación</strong> y la <strong>deserción</strong>.</p>
+
+    <h3>Aprovechamiento</h3>
+    <p>Es el promedio general de calificaciones del programa educativo en un cuatrimestre dado. Un valor por encima de 8.0 se considera bueno; por debajo de 7.0 es una señal de alerta.</p>
+
+    <h3>Reprobación</h3>
+    <p>Indica qué porcentaje del total de alumnos causó baja por reprobar materias. Se calcula así:</p>
+    <div style="background:#f0f4ff;border-left:3px solid var(--blue);padding:0.7rem 1rem;border-radius:0 6px 6px 0;font-size:0.92rem;margin:0.6rem 0 1rem;color:#1e3a8a;">
+      % Reprobación = (Alumnos que causaron baja por reprobar ÷ Total de alumnos) × 100
+    </div>
+
+    <h3>Deserción</h3>
+    <p>Indica qué porcentaje del total de alumnos abandonó sus estudios de forma voluntaria:</p>
+    <div style="background:#f0f4ff;border-left:3px solid var(--blue);padding:0.7rem 1rem;border-radius:0 6px 6px 0;font-size:0.92rem;margin:0.6rem 0 1rem;color:#1e3a8a;">
+      % Deserción = (Alumnos que causaron baja por deserción ÷ Total de alumnos) × 100
+    </div>
+
+    <div class="callout warn">
+      <strong>Cómo interpretar los porcentajes</strong>
+      Un porcentaje alto de deserción o reprobación requiere atención. El sistema muestra estos valores con colores: verde (bajo, bien), amarillo (moderado, vigilar), rojo (alto, atención urgente).
+    </div>
+
+    <h3>Cómo usar este módulo</h3>
+    <ol class="steps">
+      <li><div class="step-body"><strong>Selecciona "Rendimiento" en el menú lateral</strong> para acceder a las gráficas de aprovechamiento, reprobación y deserción.</div></li>
+      <li><div class="step-body"><strong>Filtra por programa educativo</strong> para comparar cómo le va a cada carrera en el mismo período.</div></li>
+      <li><div class="step-body"><strong>Cambia el ciclo escolar</strong> para ver cómo han evolucionado los indicadores año con año. La gráfica de líneas es ideal para ver tendencias.</div></li>
+      <li><div class="step-body"><strong>Identifica los programas con mayores problemas</strong> ordenando la tabla por el indicador que te interese (haz clic en el encabezado de la columna).</div></li>
+    </ol>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       7. EFICIENCIA TERMINAL Y TITULACIÓN
+  ═══════════════════════════════════════ -->
+  <section id="s7">
+    <h2 class="section-title"><span class="num">7</span>Módulo de Eficiencia Terminal y Titulación</h2>
+
+    <p>Este módulo responde dos preguntas clave: <strong>¿cuántos alumnos que entraron llegaron a terminar?</strong> (eficiencia terminal) y <strong>¿cuántos de los que terminaron se titularon?</strong> (titulación).</p>
+
+    <h3>Eficiencia Terminal</h3>
+    <p>Compara los alumnos que egresaron de una generación con los que originalmente ingresaron. Se calcula sobre las últimas 3 generaciones para que la comparación sea justa:</p>
+    <div style="background:#f0f4ff;border-left:3px solid var(--blue);padding:0.7rem 1rem;border-radius:0 6px 6px 0;font-size:0.92rem;margin:0.6rem 0 1rem;color:#1e3a8a;">
+      % Eficiencia Terminal = (Egresados de la generación ÷ Matrícula inicial de esa generación) × 100
+    </div>
+
+    <h3>Tasa de Titulación</h3>
+    <p>De los alumnos que egresaron, ¿cuántos obtuvieron su título?</p>
+    <div style="background:#f0f4ff;border-left:3px solid var(--blue);padding:0.7rem 1rem;border-radius:0 6px 6px 0;font-size:0.92rem;margin:0.6rem 0 1rem;color:#1e3a8a;">
+      % Titulación = (Titulados ÷ Egresados) × 100
+    </div>
+
+    <h3>¿Cómo leer los datos de generaciones?</h3>
+    <p>Los datos se muestran por <strong>generación de ingreso</strong> (ej: generación 2020-2023). Cada fila representa una generación completa con su matrícula inicial, cuántos concluyeron estudios, cuántos egresaron y cuántos se titularon.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Generación</th><th>Matricula inicial</th><th>Concluyeron</th><th>Egresados</th><th>Titulados</th><th>% Ef. Terminal</th><th>% Titulación</th></tr></thead>
+        <tbody>
+          <tr><td>2018-2021</td><td>214</td><td>125</td><td>112</td><td>78</td><td>52.3%</td><td>69.6%</td></tr>
+          <tr><td>2019-2022</td><td>179</td><td>105</td><td>91</td><td>65</td><td>50.8%</td><td>71.4%</td></tr>
+          <tr><td>2020-2023</td><td>163</td><td>85</td><td>72</td><td>50</td><td>44.2%</td><td>69.4%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <strong>Dato importante</strong>
+      El sistema calcula la eficiencia terminal sobre un máximo de 3 generaciones para que la comparación entre programas y períodos sea equivalente.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       8. EVALUACIÓN DOCENTE
+  ═══════════════════════════════════════ -->
+  <section id="s8">
+    <h2 class="section-title"><span class="num">8</span>Módulo de Evaluación Docente</h2>
+
+    <p>Muestra los resultados de la evaluación que alumnos y directivos hacen a los docentes en cada cuatrimestre.</p>
+
+    <h3>Tipos de evaluación</h3>
+    <div class="cols2">
+      <div class="card">
+        <h4>👨‍🎓 Por alumno</h4>
+        <p>Es la evaluación que los propios estudiantes hacen a sus docentes al final del cuatrimestre. Refleja la percepción del grupo sobre la enseñanza recibida.</p>
+      </div>
+      <div class="card">
+        <h4>👔 Por directivo</h4>
+        <p>Es la evaluación que hace el director o coordinador académico basada en observación de clases, expediente y desempeño general del docente.</p>
+      </div>
+    </div>
+
+    <h3>¿Qué muestra el módulo?</h3>
+    <ul>
+      <li>Promedio de puntaje por docente (separado por tipo de evaluador)</li>
+      <li>Ranking de docentes mejor y peor evaluados</li>
+      <li>Comparativa por programa educativo</li>
+      <li>Evolución histórica del promedio institucional de evaluación docente</li>
+    </ul>
+
+    <h3>Cómo usar este módulo</h3>
+    <ol class="steps">
+      <li><div class="step-body"><strong>Selecciona "Docentes" en el menú lateral.</strong></div></li>
+      <li><div class="step-body"><strong>Filtra por ciclo escolar y cuatrimestre</strong> para ver la evaluación de un período específico (ej: Ene-Abr 2024).</div></li>
+      <li><div class="step-body"><strong>Selecciona el tipo de evaluador</strong> — alumnos, directivos o ambos — para comparar ambas perspectivas.</div></li>
+      <li><div class="step-body"><strong>Usa la tabla de ranking</strong> para identificar a los docentes con puntajes más altos y más bajos en ese período.</div></li>
+    </ol>
+
+    <div class="callout warn">
+      <strong>Confidencialidad</strong>
+      Los resultados de evaluación docente son de carácter confidencial. Solo el Directivo y el Administrador tienen acceso completo a los nombres y puntajes individuales.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       9. FILTROS
+  ═══════════════════════════════════════ -->
+  <section id="s9">
+    <h2 class="section-title"><span class="num">9</span>Cómo usar los filtros</h2>
+
+    <p>Los filtros están en la <strong>barra superior</strong> de cada módulo. Todos los filtros funcionan juntos: puedes combinarlos para obtener exactamente la información que necesitas.</p>
+
+    <div class="screen">
+      <div class="screen-bar">Barra de filtros</div>
+      <div class="screen-body" style="display:flex;gap:0.8rem;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field" style="margin:0;">
+          <label>Subsistema</label>
+          <div class="input-mock" style="min-width:130px;">Todos ▾</div>
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Ciclo escolar</label>
+          <div class="input-mock" style="min-width:110px;">2024-2025 ▾</div>
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Cuatrimestre</label>
+          <div class="input-mock" style="min-width:100px;">Sep-Dic ▾</div>
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Programa educativo</label>
+          <div class="input-mock" style="min-width:120px;">Todos ▾</div>
+        </div>
+        <span class="btn-mock btn-primary" style="margin-bottom:0.05rem;">Aplicar</span>
+        <span class="btn-mock btn-secondary" style="margin-bottom:0.05rem;">Limpiar</span>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Filtro</th><th>¿Para qué sirve?</th><th>Opciones disponibles</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Subsistema</strong></td>
+            <td>Ver datos de un subsistema específico (ej: Tecnológicos, Normales)</td>
+            <td>Todos los subsistemas registrados + "Todos"</td>
+          </tr>
+          <tr>
+            <td><strong>Ciclo escolar</strong></td>
+            <td>Seleccionar el año académico a analizar</td>
+            <td>Ej: 2020-2021, 2021-2022, … hasta el más reciente</td>
+          </tr>
+          <tr>
+            <td><strong>Cuatrimestre</strong></td>
+            <td>Ver solo uno de los tres cuatrimestres del año</td>
+            <td>Sep-Dic / Ene-Abr / May-Ago / Todos</td>
+          </tr>
+          <tr>
+            <td><strong>Programa educativo</strong></td>
+            <td>Enfocarse en una carrera específica</td>
+            <td>Lista de todos los programas disponibles + "Todos"</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Consejos para filtrar</h3>
+    <ul>
+      <li>Para ver el <strong>panorama general</strong> de la institución, deja todos los filtros en "Todos".</li>
+      <li>Para <strong>comparar ciclos</strong>, selecciona un programa específico y cambia el ciclo escolar.</li>
+      <li>Para <strong>reportes formales</strong>, filtra exactamente el período y programa que necesitas antes de exportar.</li>
+      <li>El botón <strong>"Limpiar"</strong> regresa todos los filtros a su valor por defecto.</li>
+      <li>Los filtros se <strong>mantienen</strong> mientras navegas entre módulos dentro de la misma sesión.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       10. EXPORTAR REPORTES
+  ═══════════════════════════════════════ -->
+  <section id="s10">
+    <h2 class="section-title"><span class="num">10</span>Exportar reportes en PDF y Excel</h2>
+
+    <p>Puedes descargar los datos en dos formatos: <strong>PDF</strong> para presentaciones y documentos formales, y <strong>Excel</strong> para análisis adicional en hojas de cálculo.</p>
+
+    <h3>Exportar como PDF</h3>
+    <ol class="steps">
+      <li><div class="step-body"><strong>Aplica los filtros que quieres en el reporte</strong> — ciclo escolar, programa, etc. El PDF descargará exactamente lo que estás viendo.</div></li>
+      <li><div class="step-body"><strong>Haz clic en el botón "Exportar PDF"</strong> que aparece en la esquina superior derecha de cada módulo.</div></li>
+      <li><div class="step-body"><strong>Espera unos segundos</strong> mientras el sistema genera el documento. El tiempo depende de la cantidad de datos.</div></li>
+      <li><div class="step-body"><strong>Se descargará automáticamente</strong> un archivo PDF a tu carpeta de Descargas con el nombre del módulo y la fecha.</div></li>
+    </ol>
+
+    <div class="callout ok">
+      <strong>¿Cómo se ve el PDF?</strong>
+      El PDF incluye el encabezado institucional, las gráficas a color, las tablas de datos y el período que seleccionaste. Está listo para imprimir o adjuntar en correos o reportes.
+    </div>
+
+    <h3>Exportar como Excel</h3>
+    <ol class="steps">
+      <li><div class="step-body"><strong>Aplica los filtros deseados.</strong></div></li>
+      <li><div class="step-body"><strong>Haz clic en el botón "Exportar Excel"</strong> disponible en la sección de tablas de cada módulo.</div></li>
+      <li><div class="step-body"><strong>Se descarga automáticamente</strong> un archivo .xlsx con los datos en formato tabular, listo para abrir en Excel o LibreOffice.</div></li>
+    </ol>
+
+    <div class="callout info">
+      <strong>Diferencia entre PDF y Excel</strong>
+      El <strong>PDF</strong> es para presentar y archivar — incluye gráficas y está formateado profesionalmente. El <strong>Excel</strong> es para seguir trabajando con los datos — solo contiene la tabla de datos en formato editable.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       11. CARGA DE ARCHIVOS (ADMIN)
+  ═══════════════════════════════════════ -->
+  <section id="s11">
+    <h2 class="section-title"><span class="num">11</span>Carga de archivos <span style="font-size:0.8rem;font-weight:400;color:var(--gray-lt)">(Solo Administrador)</span></h2>
+
+    <p>El módulo de <strong>Cargas</strong> permite al administrador subir los archivos históricos con los datos de la institución. Acepta archivos en formato <strong>CSV</strong> y <strong>Excel (.xlsx)</strong>.</p>
+
+    <div class="callout warn">
+      <strong>¿Quién puede hacer esto?</strong>
+      Solo los usuarios con rol <strong>Administrador</strong> ven el módulo "Cargas" en el menú. Si no lo ves, tu cuenta no tiene ese permiso.
+    </div>
+
+    <h3>Tipos de archivo que puedes cargar</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tipo de archivo</th><th>¿Qué datos contiene?</th><th>Módulo donde aparece</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Matrícula</strong></td><td>Alumnos inscritos, nuevo ingreso, bajas por reprobación y deserción, hombres y mujeres</td><td>Matrícula y Rendimiento</td></tr>
+          <tr><td><strong>Evaluación Académica</strong></td><td>Promedio de calificaciones por programa y cuatrimestre</td><td>Rendimiento</td></tr>
+          <tr><td><strong>Titulación</strong></td><td>Datos de generaciones: cuántos ingresaron, egresaron y se titularon</td><td>Eficiencia y Titulación</td></tr>
+          <tr><td><strong>Evaluación Docente</strong></td><td>Puntajes de evaluación por docente, tipo de evaluador y cuatrimestre</td><td>Docentes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Cómo cargar un archivo paso a paso</h3>
+    <ol class="steps">
+      <li>
+        <div class="step-body">
+          <strong>Ve al módulo "Cargas" en el menú lateral</strong>
+          Verás la pantalla de gestión de cargas con el historial de archivos subidos.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Haz clic en "Nueva carga"</strong>
+          Se abrirá un panel con las opciones de carga.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Selecciona el tipo de dataset</strong>
+          Elige entre: Matrícula, Evaluación Académica, Titulación o Evaluación Docente. Es muy importante seleccionar el correcto para que el sistema reconozca las columnas.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Selecciona el subsistema</strong>
+          Indica a qué subsistema corresponden los datos del archivo.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Haz clic en "Seleccionar archivo" y elige tu CSV o Excel</strong>
+          El archivo debe tener el formato correcto (ver sección de columnas requeridas a continuación).
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Haz clic en "Subir"</strong>
+          El sistema comenzará a procesar el archivo. Verás una barra de progreso y el estado cambiará de "Pendiente" a "Procesando".
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Espera a que termine</strong>
+          El procesamiento puede tomar desde unos segundos hasta varios minutos dependiendo del tamaño del archivo. La pantalla se actualiza sola cada 3 segundos.
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <strong>Revisa el resultado</strong>
+          Al terminar verás cuántas filas se cargaron correctamente y cuántas tuvieron error. Puedes ver el detalle de los errores haciendo clic en el ícono de detalle.
+        </div>
+      </li>
+    </ol>
+
+    <h3>Estados de una carga</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Estado</th><th>¿Qué significa?</th><th>¿Qué hacer?</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill pill-amber">Pendiente</span></td><td>El archivo está en la fila de espera</td><td>Esperar, es normal</td></tr>
+          <tr><td><span class="pill pill-blue">Procesando</span></td><td>El sistema está leyendo y validando los datos</td><td>Esperar, no cerrar la ventana</td></tr>
+          <tr><td><span class="pill pill-green">Completado</span></td><td>La carga terminó. Puede haber filas con error reportadas</td><td>Revisar el reporte de errores si lo hay</td></tr>
+          <tr><td><span class="pill pill-red">Fallido</span></td><td>El archivo tiene un problema grave (columnas incorrectas, archivo dañado)</td><td>Corregir el archivo y volver a subirlo</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Columnas requeridas por tipo de archivo</h3>
+
+    <h4>Archivo de Matrícula</h4>
+    <p>El archivo debe tener exactamente estos nombres de columna (sin importar mayúsculas):</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Ejemplo</th><th>Obligatoria</th></tr></thead>
+        <tbody>
+          <tr><td><code>ciclo_escolar</code></td><td>2024-2025</td><td>✅ Sí</td></tr>
+          <tr><td><code>cuatrimestre</code></td><td>1, 2 o 3</td><td>✅ Sí</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>IET, IRO, LAGE…</td><td>✅ Sí</td></tr>
+          <tr><td><code>total</code></td><td>253</td><td>✅ Sí</td></tr>
+          <tr><td><code>nuevo_ingreso</code></td><td>71</td><td>✅ Sí</td></tr>
+          <tr><td><code>bajas_reprobacion</code></td><td>17</td><td>✅ Sí</td></tr>
+          <tr><td><code>bajas_desercion</code></td><td>32</td><td>✅ Sí</td></tr>
+          <tr><td><code>hombres</code></td><td>140</td><td>✅ Sí</td></tr>
+          <tr><td><code>mujeres</code></td><td>113</td><td>✅ Sí</td></tr>
+          <tr><td><code>poblacion_edad_escolar</code></td><td>1200</td><td>❌ Opcional</td></tr>
+          <tr><td><code>egresados_nms</code></td><td>850</td><td>❌ Opcional</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Archivo de Evaluación Académica</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Ejemplo</th><th>Obligatoria</th></tr></thead>
+        <tbody>
+          <tr><td><code>ciclo_escolar</code></td><td>2024-2025</td><td>✅ Sí</td></tr>
+          <tr><td><code>cuatrimestre</code></td><td>1, 2 o 3</td><td>✅ Sí</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>IET</td><td>✅ Sí</td></tr>
+          <tr><td><code>promedio_pe</code></td><td>7.8</td><td>✅ Sí</td></tr>
+          <tr><td><code>num_pe</code></td><td>4</td><td>✅ Sí</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Archivo de Titulación</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Ejemplo</th><th>Obligatoria</th></tr></thead>
+        <tbody>
+          <tr><td><code>generacion</code></td><td>2021-2024</td><td>✅ Sí</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>IRO</td><td>✅ Sí</td></tr>
+          <tr><td><code>matricula_generacional</code></td><td>121</td><td>✅ Sí</td></tr>
+          <tr><td><code>concluyeron_estudios</code></td><td>48</td><td>✅ Sí</td></tr>
+          <tr><td><code>egresados</code></td><td>37</td><td>✅ Sí</td></tr>
+          <tr><td><code>titulados</code></td><td>30</td><td>✅ Sí</td></tr>
+          <tr><td><code>ingresados_ns</code></td><td>110</td><td>❌ Opcional</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Archivo de Evaluación Docente</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Columna</th><th>Ejemplo</th><th>Obligatoria</th></tr></thead>
+        <tbody>
+          <tr><td><code>ciclo_escolar</code></td><td>2024-2025</td><td>✅ Sí</td></tr>
+          <tr><td><code>docente_id</code></td><td>DOC-001</td><td>✅ Sí</td></tr>
+          <tr><td><code>docente_nombre</code></td><td>Torres Carmona Lorenzo</td><td>✅ Sí</td></tr>
+          <tr><td><code>programa_educativo</code></td><td>IET</td><td>✅ Sí</td></tr>
+          <tr><td><code>evaluador_tipo</code></td><td>alumno ó directivo</td><td>✅ Sí</td></tr>
+          <tr><td><code>puntaje</code></td><td>4.82</td><td>✅ Sí</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout ok">
+      <strong>Las filas con error no detienen la carga</strong>
+      Si algunas filas tienen datos incorrectos, el sistema las salta y carga todo lo demás. Al final muestra un reporte de qué filas fallaron y por qué, para que puedas corregirlas y volver a subirlas.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       12. GESTIÓN DE USUARIOS (ADMIN / DIRECTIVO)
+  ═══════════════════════════════════════ -->
+  <section id="s12">
+    <h2 class="section-title"><span class="num">12</span>Gestión de usuarios <span style="font-size:0.8rem;font-weight:400;color:var(--gray-lt)">(Admin y Directivo)</span></h2>
+
+    <p>Desde el menú <strong>Usuarios</strong> puedes crear, modificar y desactivar las cuentas de los usuarios del sistema.</p>
+
+    <h3>Crear un nuevo usuario</h3>
+    <ol class="steps">
+      <li><div class="step-body"><strong>Ve a "Usuarios" en el menú lateral.</strong></div></li>
+      <li><div class="step-body"><strong>Haz clic en "Nuevo usuario".</strong></div></li>
+      <li>
+        <div class="step-body">
+          <strong>Llena el formulario con los datos del usuario:</strong>
+          <ul style="margin-top:0.4rem;">
+            <li><strong>Nombre completo</strong> — nombre y apellidos</li>
+            <li><strong>Correo electrónico</strong> — será su nombre de usuario para iniciar sesión</li>
+            <li><strong>Contraseña temporal</strong> — el usuario debe cambiarla en su primer acceso</li>
+            <li><strong>Rol</strong> — Administrador, Directivo o Usuario</li>
+            <li><strong>Subsistema</strong> — si el usuario debe ver solo datos de un subsistema específico; si debe ver todo, déjalo vacío</li>
+          </ul>
+        </div>
+      </li>
+      <li><div class="step-body"><strong>Haz clic en "Guardar".</strong> El usuario ya puede iniciar sesión con las credenciales que configuraste.</div></li>
+      <li><div class="step-body"><strong>Comunica las credenciales al usuario</strong> de forma segura (en persona o por canal cifrado). El sistema no envía correos automáticos.</div></li>
+    </ol>
+
+    <h3>Editar o desactivar un usuario</h3>
+    <ol class="steps">
+      <li><div class="step-body"><strong>Busca al usuario en la lista</strong> usando el buscador o desplazándote por la tabla.</div></li>
+      <li><div class="step-body"><strong>Haz clic en el ícono de editar</strong> (lápiz) para modificar sus datos: nombre, rol, subsistema o restablecer su contraseña.</div></li>
+      <li><div class="step-body"><strong>Para desactivar una cuenta</strong> sin borrarla, usa el interruptor "Activo/Inactivo". El usuario no podrá entrar pero sus acciones quedan en la bitácora.</div></li>
+    </ol>
+
+    <div class="callout danger">
+      <strong>Precaución</strong>
+      No borres usuarios, solo desactívalos. Borrar un usuario elimina el registro de sus acciones en la bitácora, lo que puede afectar la trazabilidad y auditoría del sistema.
+    </div>
+
+    <h3>Restablecimiento de contraseña</h3>
+    <p>Si un usuario olvida su contraseña, el administrador puede establecer una nueva desde la pantalla de edición del usuario. El sistema no envía correos automáticos — debes comunicarle la nueva contraseña directamente.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       13. BITÁCORA DE AUDITORÍA (DIRECTIVO)
+  ═══════════════════════════════════════ -->
+  <section id="s13">
+    <h2 class="section-title"><span class="num">13</span>Bitácora de auditoría <span style="font-size:0.8rem;font-weight:400;color:var(--gray-lt)">(Directivo y Admin)</span></h2>
+
+    <p>La <strong>bitácora de auditoría</strong> registra automáticamente todas las acciones importantes que ocurren en el sistema: quién las hizo, cuándo y qué recurso afectó. Sirve para verificar que el sistema se use de forma correcta y para investigar cualquier problema.</p>
+
+    <h3>¿Qué acciones quedan registradas?</h3>
+    <ul>
+      <li>Inicios de sesión (exitosos y fallidos)</li>
+      <li>Cargas de archivos de datos</li>
+      <li>Creación, modificación y desactivación de usuarios</li>
+      <li>Generación de reportes PDF</li>
+      <li>Cambios en la configuración del sistema</li>
+    </ul>
+
+    <h3>Cómo consultar la bitácora</h3>
+    <ol class="steps">
+      <li><div class="step-body"><strong>Ve a "Auditoría" en el menú lateral.</strong></div></li>
+      <li><div class="step-body"><strong>Usa los filtros de fecha</strong> para ver las acciones de un período específico.</div></li>
+      <li><div class="step-body"><strong>Filtra por usuario</strong> si quieres ver las acciones de una persona en particular.</div></li>
+      <li><div class="step-body"><strong>Filtra por tipo de acción</strong> (carga, login, usuario creado, etc.) para encontrar lo que buscas rápidamente.</div></li>
+    </ol>
+
+    <div class="callout info">
+      <strong>La bitácora no se puede modificar</strong>
+      Los registros de la bitácora son permanentes y nadie puede editarlos ni borrarlos, ni siquiera el administrador. Esto garantiza la integridad de la información de auditoría.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       14. PREGUNTAS FRECUENTES
+  ═══════════════════════════════════════ -->
+  <section id="s14">
+    <h2 class="section-title"><span class="num">14</span>Preguntas frecuentes</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">¿Por qué no veo el módulo "Cargas" en el menú?</div>
+      <div class="faq-a">El módulo de Cargas solo está disponible para usuarios con rol <strong>Administrador</strong>. Si necesitas subir archivos, contacta al administrador del sistema para que lo haga o para que te otorgue ese permiso.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">¿Por qué las gráficas muestran "Sin datos"?</div>
+      <div class="faq-a">Puede deberse a dos razones: (1) los filtros que aplicaste son muy específicos y no hay datos para esa combinación, o (2) aún no se han cargado datos para ese período. Intenta ampliar los filtros (por ejemplo, selecciona "Todos" en programa educativo) o contacta al administrador para que verifique la carga de datos.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Mi sesión se cerró y perdí lo que estaba viendo. ¿Cómo lo recupero?</div>
+      <div class="faq-a">No perdiste nada. Los datos están guardados en el servidor. Solo vuelve a iniciar sesión y aplica los mismos filtros. La sesión se cierra automáticamente por seguridad después de 15 minutos de inactividad.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Subí un archivo y el estado dice "Fallido". ¿Qué hago?</div>
+      <div class="faq-a">Haz clic en el ícono de detalle del job fallido para ver el mensaje de error. Los errores más comunes son: (1) columnas con nombres incorrectos — verifica que coincidan exactamente con los requeridos, (2) archivo con formato incorrecto — asegúrate de que sea .csv o .xlsx, (3) archivo corrupto — intenta abrirlo en Excel primero para verificar que esté bien.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Subí un archivo y dice "Completado" pero hay filas con error. ¿Se perdieron esos datos?</div>
+      <div class="faq-a">Sí, las filas con error no se cargaron. Pero las filas sin error sí están en el sistema. Descarga el reporte de errores, corrige las filas señaladas en el archivo original y vuelve a subir solo las filas corregidas.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">¿Puedo subir el mismo archivo dos veces?</div>
+      <div class="faq-a">Si los datos ya existen en el sistema (mismo programa, ciclo y cuatrimestre), el sistema los actualizará con los nuevos valores. No se duplican los registros gracias a una validación automática.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">¿El PDF que exporto incluye todas las páginas de datos o solo lo que se ve en pantalla?</div>
+      <div class="faq-a">El PDF incluye <strong>todos los datos</strong> del filtro que aplicaste, no solo lo visible en pantalla. Si hay muchos registros, el PDF tendrá múltiples páginas.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">¿Puedo usar la plataforma desde mi celular o tablet?</div>
+      <div class="faq-a">Sí, la plataforma funciona en navegadores móviles, pero la experiencia es mejor en una computadora de escritorio o laptop, especialmente para revisar tablas grandes y gráficas detalladas.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">¿Quién contactar si algo no funciona?</div>
+      <div class="faq-a">Contacta al administrador del sistema de tu institución. Si el problema es técnico (el sistema no carga, error 500, etc.), el administrador deberá comunicarlo al área de TI responsable del servidor.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       15. GLOSARIO
+  ═══════════════════════════════════════ -->
+  <section id="s15">
+    <h2 class="section-title"><span class="num">15</span>Glosario de términos</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Término</th><th>¿Qué significa en palabras simples?</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Aprovechamiento</strong></td><td>El promedio de calificaciones de los alumnos de un programa en un período</td></tr>
+          <tr><td><strong>Baja por deserción</strong></td><td>Alumno que dejó de estudiar voluntariamente sin terminar</td></tr>
+          <tr><td><strong>Baja por reprobación</strong></td><td>Alumno que causó baja porque reprobó materias y superó el límite permitido</td></tr>
+          <tr><td><strong>Ciclo escolar</strong></td><td>El año académico completo, por ejemplo 2024-2025</td></tr>
+          <tr><td><strong>Cuatrimestre</strong></td><td>Uno de los tres períodos del año: Sep-Dic (1°), Ene-Abr (2°), May-Ago (3°)</td></tr>
+          <tr><td><strong>Dashboard</strong></td><td>Pantalla principal con un resumen visual de los indicadores más importantes</td></tr>
+          <tr><td><strong>Dataset</strong></td><td>Conjunto de datos de un tipo específico (matrícula, docentes, etc.)</td></tr>
+          <tr><td><strong>Deserción</strong></td><td>El abandono de los estudios por parte del alumno</td></tr>
+          <tr><td><strong>Eficiencia Terminal</strong></td><td>El porcentaje de alumnos que ingresaron y llegaron a egresar</td></tr>
+          <tr><td><strong>Egresado</strong></td><td>Alumno que terminó todas las materias y cumplió los requisitos para graduarse</td></tr>
+          <tr><td><strong>Evaluación docente</strong></td><td>La calificación que alumnos y directivos dan al desempeño de un profesor</td></tr>
+          <tr><td><strong>Filtro</strong></td><td>Opción para mostrar solo los datos que te interesan (por año, carrera, etc.)</td></tr>
+          <tr><td><strong>Generación</strong></td><td>Grupo de alumnos que ingresaron en el mismo período (ej: generación 2021-2024)</td></tr>
+          <tr><td><strong>Indicador</strong></td><td>Un número o porcentaje que mide un aspecto del funcionamiento académico</td></tr>
+          <tr><td><strong>Job / Tarea de carga</strong></td><td>El proceso automático que lee y valida un archivo de datos cuando lo subes</td></tr>
+          <tr><td><strong>Matrícula</strong></td><td>El total de alumnos inscritos y activos en un programa y período</td></tr>
+          <tr><td><strong>Nuevo ingreso</strong></td><td>Alumnos que entran por primera vez a la institución en ese cuatrimestre</td></tr>
+          <tr><td><strong>PA (Profesor Asignatura)</strong></td><td>Docente contratado por horas para impartir materias específicas</td></tr>
+          <tr><td><strong>PE (Programa Educativo)</strong></td><td>La carrera o licenciatura (ej: IET = Ingeniería en Tecnologías de la Información)</td></tr>
+          <tr><td><strong>PTC (Profesor de Tiempo Completo)</strong></td><td>Docente con contrato de tiempo completo en la institución</td></tr>
+          <tr><td><strong>Reporte</strong></td><td>Documento PDF generado con los datos e indicadores seleccionados</td></tr>
+          <tr><td><strong>Rol</strong></td><td>El tipo de usuario y los permisos que tiene en el sistema</td></tr>
+          <tr><td><strong>Subsistema</strong></td><td>Agrupación de planteles educativos (ej: Tecnológicos de Estudios Superiores)</td></tr>
+          <tr><td><strong>Titulado</strong></td><td>Egresado que completó los trámites y obtuvo su título profesional</td></tr>
+          <tr><td><strong>Tasa de titulación</strong></td><td>El porcentaje de egresados que llegaron a titularse</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer style="margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;color:var(--gray-lt);font-size:0.82rem;">
+    <p>Plataforma de Análisis Estadístico Académico · v0.1.0 · Mayo 2026</p>
+    <p>Para soporte técnico contacta al administrador del sistema de tu institución.</p>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -14,12 +14,13 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
 
 const ROLE_LABELS: Record<string, string> = {
-  directivo: "Directivo",
-  admin: "Administrador",
-  usuario: "Usuario",
+  admin_general: "Admin General",
+  admin_escolar: "Admin Escolar",
+  viewer: "Viewer",
 };
 
 const NAV_ITEMS = [
@@ -28,9 +29,9 @@ const NAV_ITEMS = [
   { to: "/rendimiento", label: "Rendimiento", icon: BookOpen, allowedRoles: null },
   { to: "/eficiencia", label: "Eficiencia", icon: GraduationCap, allowedRoles: null },
   { to: "/docentes", label: "Eval. Docente", icon: UserCheck, allowedRoles: null },
-  { to: "/cargas", label: "Cargas", icon: Upload, allowedRoles: ["admin"] },
-  { to: "/admin/usuarios", label: "Usuarios", icon: Users, allowedRoles: ["admin", "directivo"] },
-  { to: "/admin/auditoria", label: "Auditoría", icon: ClipboardList, allowedRoles: ["directivo"] },
+  { to: "/cargas", label: "Cargas", icon: Upload, allowedRoles: ["admin_escolar", "admin_general"] },
+  { to: "/admin/usuarios", label: "Usuarios", icon: Users, allowedRoles: ["admin_escolar", "admin_general"] },
+  { to: "/admin/auditoria", label: "Auditoría", icon: ClipboardList, allowedRoles: ["admin_general"] },
 ];
 
 export function Layout() {
@@ -39,7 +40,7 @@ export function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const userRole = user?.role ?? "usuario";
+  const userRole = user?.role ?? "viewer";
 
   const mainRef = useRef<HTMLDivElement>(null);
   const [isVisibleTop, setIsVisibleTop] = useState(true);
@@ -83,11 +84,11 @@ export function Layout() {
       <div className="border-b border-white/5 p-6 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
-              <BarChart3 className="h-5 w-5 text-white" />
+            <div className="flex h-10 items-center justify-center rounded-xl bg-white px-2.5 shadow-lg shadow-black/20">
+              <Logo className="h-7 w-auto" />
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-tight text-white">Análisis Stats</h1>
+              <h1 className="text-sm font-bold tracking-tight text-white">Análisis Estadístico</h1>
               <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Dirección Académica</p>
             </div>
           </div>
@@ -166,8 +167,8 @@ export function Layout() {
 
       <div className="md:hidden sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 px-4 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
-            <BarChart3 className="h-4 w-4 text-white" />
+          <div className="flex h-9 items-center justify-center rounded-lg bg-white px-2 shadow-sm ring-1 ring-slate-200/70">
+            <Logo className="h-6 w-auto" />
           </div>
           <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">Análisis Stats</span>
         </div>
@@ -192,7 +193,7 @@ export function Layout() {
                to="/"
                end
                className={cn(
-                 "mr-1 ml-1 flex items-center justify-center relative group isolate h-10 w-10 rounded-xl transition-all duration-200 hover:scale-110",
+                 "mr-1 ml-1 flex items-center justify-center relative group isolate h-10 w-auto rounded-xl transition-all duration-200 hover:scale-105",
                  dock.key === 'top' ? "hover:-translate-y-1 align-bottom" : "hover:translate-y-1 align-top"
                )}
                onMouseEnter={() => setHoveredItem(`logo-${dock.key}`)}
@@ -201,12 +202,10 @@ export function Layout() {
               {({ isActive }) => (
                 <>
                   <div className={cn(
-                    "h-10 w-10 rounded-xl flex items-center justify-center shadow-md text-white transition-all",
-                    isActive 
-                      ? "bg-gradient-to-br from-brand-500 to-brand-600 shadow-brand-500/20" 
-                      : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
+                    "h-10 flex items-center justify-center rounded-xl bg-white px-2.5 shadow-md transition-all ring-1",
+                    isActive ? "ring-brand-500/60 shadow-brand-500/20" : "ring-slate-200/70 dark:ring-slate-700/60"
                   )}>
-                    <BarChart3 className="h-5 w-5" />
+                    <Logo className="h-6 w-auto" />
                   </div>
                   {isActive && (
                     <div className={cn("absolute w-1 h-1 rounded-full bg-brand-500 z-10", dock.key === 'top' ? "-bottom-1" : "-top-1")} />

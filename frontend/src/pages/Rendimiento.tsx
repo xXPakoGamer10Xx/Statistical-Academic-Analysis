@@ -6,20 +6,23 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ExportMenu } from "@/components/ui/ExportMenu";
-import { useFiltersStore } from "@/stores/filters";
+import { useFilters, hasActiveFilters } from "@/stores/filters";
 
 export function Rendimiento() {
-  const filters = useFiltersStore();
+  const filters = useFilters("rendimiento");
+  const exportDisabled = !hasActiveFilters(filters);
 
+  // Las gráficas de tendencia histórica NO filtran por ciclo (muestran todos los años)
+  const historicalFilters = { ...filters, ciclo_escolar: undefined };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["rendimiento", filters],
-    queryFn: () => indicadoresApi.rendimiento(filters),
+    queryKey: ["rendimiento", historicalFilters],
+    queryFn: () => indicadoresApi.rendimiento(historicalFilters),
   });
 
   const { data: opcionales } = useQuery({
-    queryKey: ["opcionales", filters],
-    queryFn: () => indicadoresApi.opcionales(filters),
+    queryKey: ["opcionales", historicalFilters],
+    queryFn: () => indicadoresApi.opcionales(historicalFilters),
   });
 
   const ciclos = Array.from(
@@ -54,7 +57,9 @@ export function Rendimiento() {
           <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">Aprovechamiento, reprobación y deserción</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ExportMenu 
+          <ExportMenu
+            disabled={exportDisabled}
+            disabledHint="Aplica al menos un filtro para exportar"
             onExportHistorical={() => reportsApi.downloadPdf("rendimiento", filters)}
             onExportPdf={() => reportsApi.downloadImagePdf("rendimiento", "charts-rendimiento", filters)}
             onExportImage={() => reportsApi.downloadImage("rendimiento", "charts-rendimiento", filters)}
@@ -62,7 +67,7 @@ export function Rendimiento() {
         </div>
       </div>
 
-      <FilterBar showCuatrimestre={false} />
+      <FilterBar scope="rendimiento" showCuatrimestre={false} />
 
       {isLoading ? (
         <div className="flex h-48 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">

@@ -3,11 +3,13 @@ import { indicadoresApi, reportsApi } from "@/api/endpoints";
 import { BarChart } from "@/components/charts/BarChart";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { KpiCard } from "@/components/ui/KpiCard";
 import { ExportMenu } from "@/components/ui/ExportMenu";
-import { useFiltersStore } from "@/stores/filters";
+import { useFilters, hasActiveFilters } from "@/stores/filters";
 
 export function Docentes() {
-  const filters = useFiltersStore();
+  const filters = useFilters("docentes");
+  const exportDisabled = !hasActiveFilters(filters);
 
   const { data } = useQuery({
     queryKey: ["docentes", filters],
@@ -18,6 +20,7 @@ export function Docentes() {
   const cats = docentes.map((d) => d.docente_nombre);
   const alumnos = docentes.map((d) => d.promedio_alumnos ?? 0);
   const directivos = docentes.map((d) => d.promedio_directivos ?? 0);
+  const promedioInstitucional = data?.promedio_institucional ?? null;
 
   return (
     <div className="space-y-6" id="dashboard-docentes">
@@ -27,13 +30,15 @@ export function Docentes() {
           <p className="text-sm text-slate-500 dark:text-slate-400">Comparativa de evaluaciones por alumnos y directivos</p>
         </div>
         <ExportMenu
+          disabled={exportDisabled}
+          disabledHint="Aplica al menos un filtro para exportar"
           onExportHistorical={() => reportsApi.downloadPdf("docentes", filters)}
           onExportPdf={() => reportsApi.downloadImagePdf("docentes", "charts-docentes", filters)}
           onExportImage={() => reportsApi.downloadImage("docentes", "charts-docentes", filters)}
         />
       </div>
 
-      <FilterBar showCuatrimestre={false} />
+      <FilterBar scope="docentes" showCuatrimestre={false} />
 
       {docentes.length === 0 && (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center text-slate-400 dark:text-slate-500">
@@ -43,6 +48,22 @@ export function Docentes() {
       )}
 
       <div id="charts-docentes" className="space-y-6">
+        {docentes.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <KpiCard
+              label="Promedio institucional"
+              value={promedioInstitucional !== null ? promedioInstitucional.toFixed(2) : "—"}
+              variant="blue"
+              hint="Promedio general de todos los docentes"
+            />
+            <KpiCard label="Docentes evaluados" value={docentes.length} variant="green" />
+            <KpiCard
+              label="Mejor promedio"
+              value={docentes.reduce((max, d) => Math.max(max, d.promedio_general ?? 0), 0).toFixed(2)}
+              variant="amber"
+            />
+          </div>
+        )}
         <Card>
           <CardHeader><CardTitle>Promedios comparados</CardTitle></CardHeader>
         <CardContent>
@@ -68,6 +89,7 @@ export function Docentes() {
                 <th>Programa</th>
                 <th>Alumnos</th>
                 <th>Directivos</th>
+                <th>Prom. general</th>
               </tr>
             </thead>
             <tbody>
@@ -78,6 +100,7 @@ export function Docentes() {
                   <td>{d.programa_educativo}</td>
                   <td>{d.promedio_alumnos?.toFixed(2) ?? "—"}</td>
                   <td>{d.promedio_directivos?.toFixed(2) ?? "—"}</td>
+                  <td className="font-semibold text-slate-900 dark:text-white">{d.promedio_general?.toFixed(2) ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

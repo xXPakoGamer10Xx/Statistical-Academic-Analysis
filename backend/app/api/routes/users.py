@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentUser, DbDep, DirectivoUser, StaffUser
+from app.api.deps import CurrentUser, DbDep, SchoolAdminUser
 from app.core.security import hash_password
 from app.models.user import User
 from app.schemas.user import UserCreate, UserOut, UserUpdate
@@ -14,8 +14,10 @@ router = APIRouter()
 
 # ── Roles que cada caller puede gestionar ────────────────────────────────────
 _MANAGEABLE_BY: dict[str, set[str]] = {
-    "directivo": {"admin", "usuario"},
-    "admin": {"usuario"},
+    # El admin general gestiona todo (todas las escuelas y todos los roles).
+    "admin_general": {"admin_general", "admin_escolar", "viewer"},
+    # El admin escolar solo puede crear cuentas viewer de su propia escuela.
+    "admin_escolar": {"viewer"},
 }
 
 
@@ -29,11 +31,11 @@ def _assert_can_manage(caller: User, target_role: str) -> None:
 
 
 def _assert_subsistema_scope(caller: User, target_subsistema_id: int | None) -> None:
-    """Admin solo puede gestionar usuarios de su propio subsistema."""
-    if caller.role == "admin" and target_subsistema_id != caller.subsistema_id:
+    """admin_escolar solo puede gestionar usuarios de su propia escuela."""
+    if caller.role == "admin_escolar" and target_subsistema_id != caller.subsistema_id:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
-            "Solo puedes gestionar usuarios de tu propio subsistema",
+            "Solo puedes gestionar usuarios de tu propia escuela",
         )
 
 
@@ -46,18 +48,18 @@ async def me(current: CurrentUser) -> User:
 
 
 @router.get("", response_model=list[UserOut])
-async def list_users(caller: StaffUser, db: DbDep) -> list[User]:
+async def list_users(caller: SchoolAdminUser, db: DbDep) -> list[User]:
     stmt = select(User).order_by(User.created_at.desc())
-    if caller.role == "admin":
+    if caller.role == "admin_escolar":
         stmt = stmt.where(User.subsistema_id == caller.subsistema_id)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreate, caller: StaffUser, db: DbDep) -> User:
+async def create_user(payload: UserCreate, caller: SchoolAdminUser, db: DbDep) -> User:
     _assert_can_manage(caller, payload.role)
-    if caller.role == "admin":
+    if caller.role == "admin_escolar":
         _assert_subsistema_scope(caller, payload.subsistema_id)
 
     user = User(
@@ -85,7 +87,7 @@ async def create_user(payload: UserCreate, caller: StaffUser, db: DbDep) -> User
 
 
 @router.get("/{user_id}", response_model=UserOut)
-async def get_user(user_id: uuid.UUID, _caller: StaffUser, db: DbDep) -> User:
+async def get_user(user_id: uuid.UUID, _caller: SchoolAdminUser, db: DbDep) -> User:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
@@ -95,7 +97,7 @@ async def get_user(user_id: uuid.UUID, _caller: StaffUser, db: DbDep) -> User:
 
 @router.patch("/{user_id}", response_model=UserOut)
 async def update_user(
-    user_id: uuid.UUID, payload: UserUpdate, caller: StaffUser, db: DbDep
+    user_id: uuid.UUID, payload: UserUpdate, caller: SchoolAdminUser, db: DbDep
 ) -> User:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -103,7 +105,7 @@ async def update_user(
         raise HTTPException(404, "Usuario no encontrado")
 
     _assert_can_manage(caller, user.role)
-    if caller.role == "admin":
+    if caller.role == "admin_escolar":
         _assert_subsistema_scope(caller, user.subsistema_id)
 
     data = payload.model_dump(exclude_unset=True)
@@ -143,7 +145,7 @@ async def update_user(
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def disable_user(user_id: uuid.UUID, caller: StaffUser, db: DbDep) -> None:
+async def disable_user(user_id: uuid.UUID, caller: SchoolAdminUser, db: DbDep) -> None:
     if user_id == caller.id:
         raise HTTPException(400, "No puedes deshabilitarte a ti mismo")
     result = await db.execute(select(User).where(User.id == user_id))
@@ -152,7 +154,7 @@ async def disable_user(user_id: uuid.UUID, caller: StaffUser, db: DbDep) -> None
         raise HTTPException(404, "Usuario no encontrado")
 
     _assert_can_manage(caller, user.role)
-    if caller.role == "admin":
+    if caller.role == "admin_escolar":
         _assert_subsistema_scope(caller, user.subsistema_id)
 
     user.is_active = False

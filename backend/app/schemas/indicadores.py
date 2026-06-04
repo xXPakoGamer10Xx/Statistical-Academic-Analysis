@@ -50,10 +50,12 @@ class EvaluacionDocentePunto(BaseModel):
     programa_educativo: str
     promedio_alumnos: float | None
     promedio_directivos: float | None
+    promedio_general: float | None
 
 
 class EvaluacionDocenteResumen(BaseModel):
     docentes: list[EvaluacionDocentePunto]
+    promedio_institucional: float | None = None
 
 
 class IndicadoresOpcionales(BaseModel):

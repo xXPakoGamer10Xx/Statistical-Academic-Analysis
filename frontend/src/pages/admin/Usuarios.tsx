@@ -7,32 +7,62 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import type { User } from "@/types";
+
+type Role = "viewer" | "admin_escolar" | "admin_general";
+
+// Qué roles puede crear/gestionar cada rol (igual que el backend _MANAGEABLE_BY).
+const MANAGEABLE_BY: Record<string, Role[]> = {
+  admin_general: ["viewer", "admin_escolar", "admin_general"],
+  admin_escolar: ["viewer"],
+};
 
 interface FormState {
   email: string;
   full_name: string;
   password: string;
-  role: "admin" | "usuario" | "directivo";
+  role: Role;
   subsistema_id: number | null;
 }
 
-const EMPTY: FormState = { email: "", full_name: "", password: "", role: "usuario", subsistema_id: null };
+const ROLE_OPTIONS: { value: Role; label: string }[] = [
+  { value: "viewer", label: "Viewer (solo ver)" },
+  { value: "admin_escolar", label: "Admin Escolar" },
+  { value: "admin_general", label: "Admin General" },
+];
+
+const ROLE_LABELS: Record<string, string> = {
+  viewer: "Viewer",
+  admin_escolar: "Admin Escolar",
+  admin_general: "Admin General",
+};
+
+const EMPTY: FormState = { email: "", full_name: "", password: "", role: "viewer", subsistema_id: null };
 
 export function Usuarios() {
   const qc = useQueryClient();
+  const { user: me } = useAuth();
+  const callerRole = me?.role ?? "viewer";
+  const availableRoles = ROLE_OPTIONS.filter((r) => (MANAGEABLE_BY[callerRole] ?? []).includes(r.value));
+  // El admin escolar solo gestiona usuarios de SU escuela (escuela fija).
+  const isEscolar = callerRole === "admin_escolar";
+  const lockedSubsistemaId = isEscolar ? (me?.subsistema_id ?? null) : null;
+
   const { data: users } = useQuery({ queryKey: ["users"], queryFn: usersApi.list });
   const { data: subsistemas } = useQuery({ queryKey: ["subsistemas"], queryFn: subsistemasApi.list });
-  const [form, setForm] = useState<FormState>(EMPTY);
+  const [form, setForm] = useState<FormState>({ ...EMPTY, subsistema_id: lockedSubsistemaId });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<FormState & { confirmPassword?: string }>>({});
   const [showPassword, setShowPassword] = useState(false);
 
   const create = useMutation({
-    mutationFn: (payload: FormState) =>
-      usersApi.create({ ...payload, subsistema_id: payload.subsistema_id ?? undefined } as Partial<User> & { password: string }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["users"] }); setForm(EMPTY); },
+    mutationFn: (payload: FormState) => {
+      const subsistema_id = isEscolar ? (lockedSubsistemaId ?? undefined) : (payload.subsistema_id ?? undefined);
+      return usersApi.create({ ...payload, subsistema_id } as Partial<User> & { password: string });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["users"] }); setForm({ ...EMPTY, subsistema_id: lockedSubsistemaId }); },
   });
 
   const update = useMutation({
@@ -88,16 +118,26 @@ export function Usuarios() {
             </div>
             <div>
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Rol</label>
-              <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "admin" | "usuario" })}>
-                <option value="usuario">Usuario</option>
-                <option value="admin">Administrador</option>
+              <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
+                {availableRoles.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
               </Select>
             </div>
             <div>
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Universidad Politécnica de Texcoco</label>
-              <Select value={form.subsistema_id ?? ""} onChange={(e) => setForm({ ...form, subsistema_id: e.target.value ? Number(e.target.value) : null })}>
-                  <option value="">Universidad Politécnica de Texcoco</option>
-              </Select>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Escuela</label>
+              {isEscolar ? (
+                <div className="flex h-10 w-full items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 text-sm text-slate-700 dark:text-slate-300">
+                  {subsistemas?.find((s) => s.id === lockedSubsistemaId)?.nombre ?? "Tu escuela"}
+                </div>
+              ) : (
+                <Select value={form.subsistema_id ?? ""} onChange={(e) => setForm({ ...form, subsistema_id: e.target.value ? Number(e.target.value) : null })}>
+                  <option value="">Todas las escuelas (global)</option>
+                  {subsistemas?.map((s) => (
+                    <option key={s.id} value={s.id}>{s.nombre}</option>
+                  ))}
+                </Select>
+              )}
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={create.isPending} className="w-full">
@@ -123,7 +163,7 @@ export function Usuarios() {
                 <th className="pb-4 pl-2 font-bold">Email</th>
                 <th className="pb-4 font-bold">Nombre</th>
                 <th className="pb-4 font-bold text-center">Rol</th>
-                  <th className="pb-4 font-bold text-center">Universidad Politécnica de Texcoco</th>
+                  <th className="pb-4 font-bold text-center">Escuela</th>
                 <th className="pb-4 text-center font-bold">Estado</th>
                 <th className="pb-4 text-center font-bold">Acciones</th>
               </tr>
@@ -143,12 +183,12 @@ export function Usuarios() {
                   <td className="py-4 text-center">
                     <span className={cn(
                       "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
-                      u.role === "admin" 
-                        ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" 
+                      u.role !== "viewer"
+                        ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
                         : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                     )}>
-                      {u.role === "admin" ? <Shield className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
-                      {u.role}
+                      {u.role !== "viewer" ? <Shield className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
+                      {ROLE_LABELS[u.role] ?? u.role}
                     </span>
                   </td>
                   <td className="py-4 text-center text-slate-600 dark:text-slate-400">
@@ -174,7 +214,7 @@ export function Usuarios() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      {u.is_active && u.role !== "admin" && (
+                      {u.is_active && u.role !== "admin_general" && (
                         <Button
                           size="sm"
                           variant="danger"
@@ -222,22 +262,32 @@ export function Usuarios() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Rol</label>
-                <Select 
-                  value={editForm.role ?? ""} 
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as "admin" | "usuario" })}
+                <Select
+                  value={editForm.role ?? ""}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })}
                 >
-                  <option value="usuario">Usuario</option>
-                  <option value="admin">Administrador</option>
+                  {availableRoles.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
                 </Select>
               </div>
               <div>
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Universidad Politécnica de Texcoco</label>
-                <Select 
-                  value={editForm.subsistema_id ?? ""} 
-                  onChange={(e) => setEditForm({ ...editForm, subsistema_id: e.target.value ? Number(e.target.value) : null })}
-                >
-                  <option value="">Universidad Politécnica de Texcoco</option>
-                </Select>
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Escuela</label>
+                {isEscolar ? (
+                  <div className="flex h-10 w-full items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 text-sm text-slate-700 dark:text-slate-300">
+                    {subsistemas?.find((s) => s.id === lockedSubsistemaId)?.nombre ?? "Tu escuela"}
+                  </div>
+                ) : (
+                  <Select
+                    value={editForm.subsistema_id ?? ""}
+                    onChange={(e) => setEditForm({ ...editForm, subsistema_id: e.target.value ? Number(e.target.value) : null })}
+                  >
+                    <option value="">Todas las escuelas (global)</option>
+                    {subsistemas?.map((s) => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </Select>
+                )}
               </div>
             </div>
 

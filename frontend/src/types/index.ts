@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
-  role: "directivo" | "admin" | "usuario";
+  role: "viewer" | "admin_escolar" | "admin_general";
   subsistema_id: number | null;
   is_active: boolean;
   created_at: string;
@@ -104,10 +104,60 @@ export interface EvaluacionDocentePunto {
   programa_educativo: string;
   promedio_alumnos: number | null;
   promedio_directivos: number | null;
+  promedio_general: number | null;
 }
 
 export interface EvaluacionDocenteResumen {
   docentes: EvaluacionDocentePunto[];
+  promedio_institucional: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Tipos del wizard de upload inteligente
+// ---------------------------------------------------------------------------
+
+export interface ColumnMappingItem {
+  excel_column: string;
+  system_field: string | null;
+  confidence: number;
+}
+
+export interface DatasetTypeScore {
+  dataset_type: string;
+  score: number;
+  label: string;
+}
+
+export interface SheetAnalysis {
+  sheet_name: string;
+  header_row: number;
+  detected_headers: string[];
+  sample_rows: string[][];
+  suggested_dataset_type: string | null;
+  dataset_type_scores: DatasetTypeScore[];
+  column_mapping: ColumnMappingItem[];
+  has_merged_cells: boolean;
+  total_data_rows: number;
+  warnings: string[];
+}
+
+export interface ExcelAnalysis {
+  sheet_names: string[];
+  sheets: SheetAnalysis[];
+  recommended_sheet: string | null;
+}
+
+export type WizardStep = "upload" | "sheet" | "mapping" | "preview" | "confirm";
+
+export interface WizardState {
+  step: WizardStep;
+  file: File | null;
+  analysis: ExcelAnalysis | null;
+  selectedSheet: string | null;
+  selectedDatasetType: string;
+  headerRow: number;
+  columnMapping: Record<string, string | null>;
+  subsistemaId: number | "";
 }
 
 export interface FilterState {

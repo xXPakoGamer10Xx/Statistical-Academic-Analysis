@@ -15,7 +15,7 @@ async def get_evaluacion_docente(
     ciclo_escolar: str | None = Query(None),
     programa_educativo: str | None = Query(None),
 ) -> EvaluacionDocenteResumen:
-    sid = subsistema_id if user.role in ("admin", "directivo") else user.subsistema_id
+    sid = subsistema_id if user.role == "admin_general" else user.subsistema_id
     return await calcular_evaluacion_docente(
         db,
         subsistema_id=sid,
