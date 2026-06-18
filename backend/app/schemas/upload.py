@@ -5,7 +5,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
-DatasetType = Literal["matricula", "evaluacion_academica", "titulacion", "evaluacion_docente"]
+DatasetType = Literal[
+    "matricula",
+    "evaluacion_academica",
+    "titulacion",
+    "evaluacion_docente",
+    "caracterizacion",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -28,6 +34,7 @@ class SheetAnalysisOut(BaseModel):
     sheet_name: str
     header_row: int
     detected_headers: list[str]
+    header_column_indices: list[int] = []
     sample_rows: list[list[str]]
     suggested_dataset_type: str | None
     dataset_type_scores: list[DatasetTypeScore]
@@ -72,6 +79,7 @@ class DatasetFieldOut(BaseModel):
     required: bool
     description: str | None = None
     allowed_values: list[str] | None = None
+    suggested_values: list[str] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -97,3 +105,4 @@ class DatasetDefinitionOut(BaseModel):
     label: str
     description: str
     fields: list[DatasetFieldOut]
+    catalogos: dict[str, list[str]] | None = None

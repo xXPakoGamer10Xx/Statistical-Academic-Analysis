@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import type { DatasetDefinition, Subsistema } from "@/types";
+import type { DatasetDefinition, DatasetField, Subsistema } from "@/types";
 
 interface Props {
   formats: DatasetDefinition[] | undefined;
@@ -31,6 +31,25 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
 
   const def = useMemo(() => formats?.find((f) => f.key === datasetType), [formats, datasetType]);
   const [rows, setRows] = useState<Row[]>([emptyRow(def)]);
+
+  // Columna cuyos valores son las llaves del catalogo (ej. "categoria" → beca/discapacidad/etnia).
+  const catalogDriver = useMemo(() => {
+    if (!def?.catalogos) return null;
+    const keys = Object.keys(def.catalogos).sort().join(",");
+    const driver = def.fields.find(
+      (f) => f.allowed_values && [...f.allowed_values].sort().join(",") === keys,
+    );
+    return driver?.name ?? null;
+  }, [def]);
+
+  // Sugerencias para un campo en una fila: catalogo dependiente de la categoria o lista plana.
+  const suggestionsFor = (field: DatasetField, row: Row): string[] | null => {
+    if (def?.catalogos && catalogDriver && field.suggested_values) {
+      const sel = row[catalogDriver];
+      if (sel && def.catalogos[sel]) return def.catalogos[sel];
+    }
+    return field.suggested_values ?? null;
+  };
 
   // Al cambiar el tipo de dataset, reiniciar las filas con los campos correctos
   const changeDataset = (key: string) => {
@@ -113,24 +132,41 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
             <tbody>
               {rows.map((row, rowIdx) => (
                 <tr key={rowIdx} className="border-b border-slate-100 dark:border-slate-800/50">
-                  {def?.fields.map((f) => (
-                    <td key={f.name} className="px-1 py-1.5">
-                      {f.allowed_values && f.allowed_values.length > 0 ? (
-                        <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
-                          <option value="">—</option>
-                          {f.allowed_values.map((v) => <option key={v} value={v}>{v}</option>)}
-                        </Select>
-                      ) : (
-                        <Input
-                          type={f.kind === "int" || f.kind === "float" ? "number" : "text"}
-                          step={f.kind === "float" ? "0.01" : undefined}
-                          value={row[f.name] ?? ""}
-                          onChange={(e) => setCell(rowIdx, f.name, e.target.value)}
-                          className="min-w-[120px]"
-                        />
-                      )}
-                    </td>
-                  ))}
+                  {def?.fields.map((f) => {
+                    const suggestions = suggestionsFor(f, row);
+                    const listId = `dl-${rowIdx}-${f.name}`;
+                    return (
+                      <td key={f.name} className="px-1 py-1.5">
+                        {f.allowed_values && f.allowed_values.length > 0 ? (
+                          <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                            <option value="">—</option>
+                            {f.allowed_values.map((v) => <option key={v} value={v}>{v}</option>)}
+                          </Select>
+                        ) : suggestions && suggestions.length > 0 ? (
+                          <>
+                            <Input
+                              list={listId}
+                              value={row[f.name] ?? ""}
+                              onChange={(e) => setCell(rowIdx, f.name, e.target.value)}
+                              placeholder="Elige o escribe…"
+                              className="min-w-[140px]"
+                            />
+                            <datalist id={listId}>
+                              {suggestions.map((v) => <option key={v} value={v} />)}
+                            </datalist>
+                          </>
+                        ) : (
+                          <Input
+                            type={f.kind === "int" || f.kind === "float" ? "number" : "text"}
+                            step={f.kind === "float" ? "0.01" : undefined}
+                            value={row[f.name] ?? ""}
+                            onChange={(e) => setCell(rowIdx, f.name, e.target.value)}
+                            className="min-w-[120px]"
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
                   <td className="px-1 py-1.5">
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeRow(rowIdx)}>
                       <Trash2 className="h-4 w-4 text-slate-400" />

@@ -8,6 +8,7 @@ import {
   UserCheck,
   Upload,
   BookOpen,
+  HeartHandshake,
   LogOut,
   Menu,
   X,
@@ -26,6 +27,7 @@ const ROLE_LABELS: Record<string, string> = {
 const NAV_ITEMS = [
   { to: "/", label: "Resumen General", icon: BarChart3, allowedRoles: null },
   { to: "/matricula", label: "Matrícula", icon: Users, allowedRoles: null },
+  { to: "/caracterizacion", label: "Caracterización", icon: HeartHandshake, allowedRoles: null },
   { to: "/rendimiento", label: "Rendimiento", icon: BookOpen, allowedRoles: null },
   { to: "/eficiencia", label: "Eficiencia", icon: GraduationCap, allowedRoles: null },
   { to: "/docentes", label: "Eval. Docente", icon: UserCheck, allowedRoles: null },

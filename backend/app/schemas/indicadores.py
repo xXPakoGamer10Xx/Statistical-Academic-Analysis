@@ -62,3 +62,19 @@ class IndicadoresOpcionales(BaseModel):
     cobertura: list[IndicadorPorcentual]
     abandono_escolar: list[IndicadorPorcentual]
     absorcion: list[IndicadorPorcentual]
+
+
+class CaracterizacionTipo(BaseModel):
+    tipo: str
+    cantidad: int
+
+
+class CaracterizacionCategoria(BaseModel):
+    categoria: str
+    total: int
+    tipos: list[CaracterizacionTipo]
+
+
+class CaracterizacionResumen(BaseModel):
+    total: int
+    categorias: list[CaracterizacionCategoria]

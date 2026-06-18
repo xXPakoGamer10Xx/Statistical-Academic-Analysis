@@ -1,4 +1,5 @@
 from app.models.audit_log import AuditLog
+from app.models.caracterizacion import Caracterizacion
 from app.models.evaluacion import EvaluacionAcademica, EvaluacionDocente
 from app.models.matricula import Matricula
 from app.models.subsistema import Subsistema
@@ -8,6 +9,7 @@ from app.models.user import User
 
 __all__ = [
     "AuditLog",
+    "Caracterizacion",
     "EvaluacionAcademica",
     "EvaluacionDocente",
     "Matricula",

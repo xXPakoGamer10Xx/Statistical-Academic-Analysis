@@ -33,7 +33,12 @@ def parse_and_validate_smart(
             read_kwargs["sheet_name"] = sheet_name
         df = pd.read_excel(file_path, **read_kwargs)
     else:
-        df = pd.read_csv(file_path, dtype=str, keep_default_na=False, na_values=[""])
+        csv_kwargs: dict[str, Any] = {"dtype": str, "keep_default_na": False, "na_values": [""]}
+        try:
+            df = pd.read_csv(file_path, encoding="utf-8", **csv_kwargs)
+        except UnicodeDecodeError:
+            # Archivos exportados desde Excel/Windows usan latin-1 (ISO-8859-1).
+            df = pd.read_csv(file_path, encoding="latin-1", **csv_kwargs)
 
     df = _apply_column_mapping(df, column_mapping)
     return _validate_dataframe(df, dataset_type)

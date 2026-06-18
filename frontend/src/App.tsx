@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { Caracterizacion } from "@/pages/Caracterizacion";
 import { Cargas } from "@/pages/Cargas";
 import { Dashboard } from "@/pages/Dashboard";
 import { Docentes } from "@/pages/Docentes";
@@ -19,6 +20,7 @@ export function App() {
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="matricula" element={<Matricula />} />
+          <Route path="caracterizacion" element={<Caracterizacion />} />
           <Route path="rendimiento" element={<Rendimiento />} />
           <Route path="eficiencia" element={<Eficiencia />} />
           <Route path="docentes" element={<Docentes />} />

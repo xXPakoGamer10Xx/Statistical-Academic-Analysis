@@ -32,6 +32,7 @@ const DATASET_LABELS: Record<string, string> = {
   evaluacion_academica: "Evaluación Académica",
   titulacion: "Titulación",
   evaluacion_docente: "Evaluación Docente",
+  caracterizacion: "Caracterización (Becas / Discapacidad / Etnia)",
 };
 
 const STEPS: { id: WizardStep; label: string }[] = [
@@ -185,9 +186,10 @@ export function Cargas() {
   );
   const canProceedFromMapping = mappedRequired.length === requiredFields.length;
 
+  const isAdminGeneral = currentUser?.role === "admin_general";
   const subsistemaName = currentUser?.subsistema_id
     ? (subsistemas?.find((s) => s.id === currentUser.subsistema_id)?.nombre ?? `Subsistema ${currentUser.subsistema_id}`)
-    : "Universidad Politécnica de Texcoco";
+    : (subsistemas?.find((s) => s.id === wizard.subsistemaId)?.nombre ?? "—");
 
   // Paso visual (sheet se omite si solo hay 1 hoja)
   const visibleSteps = wizard.analysis && wizard.analysis.sheet_names.length <= 1
@@ -216,7 +218,7 @@ export function Cargas() {
               >
                 <input
                   type="file"
-                  accept=".xlsx, .xls"
+                  accept=".xlsx,.xls,.csv"
                   onChange={(e) => {
                     const f = e.target.files?.[0] ?? null;
                     updateWizard({ file: f });
@@ -241,8 +243,8 @@ export function Cargas() {
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Haz clic o arrastra tu archivo Excel</p>
-                      <p className="mt-1 text-xs text-slate-400">Cualquier .xlsx — el sistema detecta el formato automáticamente</p>
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Haz clic o arrastra tu archivo Excel o CSV</p>
+                      <p className="mt-1 text-xs text-slate-400">.xlsx, .xls o .csv — el sistema detecta el formato automáticamente</p>
                     </>
                   )}
                 </div>
@@ -501,8 +503,9 @@ export function Cargas() {
 
         const previewRows = sheet.sample_rows.map((row) =>
           mappedHeaders.map(({ excel }) => {
-            const idx = sheet.detected_headers.indexOf(excel);
-            return idx >= 0 ? (row[idx] ?? "") : "";
+            const headerIdx = sheet.detected_headers.indexOf(excel);
+            const colIdx = sheet.header_column_indices?.[headerIdx] ?? headerIdx;
+            return colIdx >= 0 ? (row[colIdx] ?? "") : "";
           }),
         );
 
@@ -511,6 +514,13 @@ export function Cargas() {
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Así quedarán las primeras filas después del mapeo. Verifica que los datos sean correctos.
             </p>
+
+            {sheet.warnings.map((w, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/50 p-3 text-xs text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                {w}
+              </div>
+            ))}
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
               <table className="w-full text-xs">
@@ -557,6 +567,7 @@ export function Cargas() {
       case "confirm": {
         const validMapping = Object.entries(wizard.columnMapping).filter(([, v]) => v);
         const optionalMapped = validMapping.filter(([, v]) => !requiredFields.includes(v!)).length;
+        const canSubmit = !uploadMutation.isPending && (!isAdminGeneral || !!wizard.subsistemaId);
 
         return (
           <div className="space-y-5">
@@ -590,7 +601,7 @@ export function Cargas() {
               <Button
                 className="flex-1 h-12"
                 onClick={() => { uploadMutation.mutate(); }}
-                disabled={uploadMutation.isPending}
+                disabled={!canSubmit}
               >
                 <UploadIcon className="mr-2 h-5 w-5" />
                 {uploadMutation.isPending ? "Cargando..." : "Iniciar carga de datos"}
@@ -616,7 +627,7 @@ export function Cargas() {
           Cargas de bases de datos
         </h1>
         <p className="mt-2 text-slate-500 dark:text-slate-400 font-medium">
-          Sube tu archivo Excel — el sistema detecta el formato automáticamente
+          Sube tu archivo Excel o CSV — el sistema detecta el formato automáticamente
         </p>
       </div>
 
@@ -646,9 +657,19 @@ export function Cargas() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Institución</label>
-                    <div className="flex h-10 w-full items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 text-sm text-slate-700 dark:text-slate-300">
-                      {subsistemaName}
-                    </div>
+                    {isAdminGeneral ? (
+                      <Select
+                        value={wizard.subsistemaId === "" ? "" : String(wizard.subsistemaId)}
+                        onChange={(e) => updateWizard({ subsistemaId: e.target.value ? Number(e.target.value) : "" })}
+                      >
+                        <option value="">Selecciona una escuela…</option>
+                        {subsistemas?.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                      </Select>
+                    ) : (
+                      <div className="flex h-10 w-full items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 text-sm text-slate-700 dark:text-slate-300">
+                        {subsistemaName}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Tipo de datos</label>
@@ -728,9 +749,19 @@ export function Cargas() {
                 {/* Institución (siempre visible) */}
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Institución</label>
-                  <div className="flex h-10 w-full items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 text-sm text-slate-700 dark:text-slate-300">
-                    {subsistemaName}
-                  </div>
+                  {isAdminGeneral ? (
+                    <Select
+                      value={wizard.subsistemaId === "" ? "" : String(wizard.subsistemaId)}
+                      onChange={(e) => updateWizard({ subsistemaId: e.target.value ? Number(e.target.value) : "" })}
+                    >
+                      <option value="">Selecciona una escuela…</option>
+                      {subsistemas?.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                    </Select>
+                  ) : (
+                    <div className="flex h-10 w-full items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 text-sm text-slate-700 dark:text-slate-300">
+                      {subsistemaName}
+                    </div>
+                  )}
                 </div>
 
                 {renderStep()}
@@ -822,6 +853,11 @@ export function Cargas() {
                       {(j.status === "processing" || j.status === "pending") && <Clock className="h-3 w-3 animate-spin" />}
                       {j.status}
                     </div>
+                    {j.status === "failed" && j.error_message && (
+                      <p className="mt-1 max-w-[200px] truncate text-[10px] text-red-500 dark:text-red-400" title={j.error_message}>
+                        {j.error_message}
+                      </p>
+                    )}
                   </td>
                   <td className="py-4 text-center">
                     <div className="flex flex-col items-center gap-1">

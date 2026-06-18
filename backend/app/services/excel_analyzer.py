@@ -1,10 +1,11 @@
-"""Análisis inteligente de archivos Excel para detección automática de columnas."""
+"""Análisis inteligente de archivos Excel y CSV para detección automática de columnas."""
 from __future__ import annotations
 
+import csv
 import difflib
 import re
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,7 @@ class SheetAnalysis:
     sheet_name: str
     header_row: int
     detected_headers: list[str]
+    header_column_indices: list[int]
     sample_rows: list[list[str]]
     suggested_dataset_type: str | None
     dataset_type_scores: list[DatasetTypeScore]
@@ -119,23 +121,49 @@ def _cell_value(cell: Any) -> str:
     v = cell.value
     if v is None:
         return ""
+    if isinstance(v, bool):
+        return "True" if v else "False"
     return str(v).strip()
+
+
+def _strip_trailing_empty(values: list[str]) -> list[str]:
+    trimmed = list(values)
+    while trimmed and trimmed[-1] == "":
+        trimmed.pop()
+    return trimmed
+
+
+def _extract_headers(raw_row: list[str]) -> tuple[list[str], list[int]]:
+    """Obtiene nombres de columna y su índice físico (0-based), omitiendo celdas vacías."""
+    headers: list[str] = []
+    indices: list[int] = []
+    for idx, value in enumerate(raw_row):
+        if value:
+            headers.append(value)
+            indices.append(idx)
+        if len(headers) >= MAX_COLS:
+            break
+    return headers, indices
+
+
+def _detect_header_row_from_rows(rows: list[list[str]], max_scan: int = HEADER_SCAN_ROWS) -> int:
+    scan = rows[:max_scan]
+    for i, row_vals in enumerate(scan[:-1]):
+        non_empty = sum(1 for v in row_vals if v)
+        if non_empty < 3:
+            continue
+        next_row = scan[i + 1]
+        next_non_empty = sum(1 for v in next_row if v)
+        if next_non_empty >= non_empty * 0.6:
+            return i
+    return 0
 
 
 def _detect_header_row(ws: Any, max_scan: int = HEADER_SCAN_ROWS) -> int:
     rows: list[list[str]] = []
     for row in ws.iter_rows(min_row=1, max_row=max_scan):
         rows.append([_cell_value(c) for c in row])
-
-    for i, row_vals in enumerate(rows[:-1]):
-        non_empty = sum(1 for v in row_vals if v)
-        if non_empty < 3:
-            continue
-        next_row = rows[i + 1]
-        next_non_empty = sum(1 for v in next_row if v)
-        if next_non_empty >= non_empty * 0.6:
-            return i
-    return 0
+    return _detect_header_row_from_rows(rows, max_scan=max_scan)
 
 
 # ---------------------------------------------------------------------------
@@ -201,21 +229,17 @@ def _analyze_sheet(ws: Any, sheet_name: str) -> SheetAnalysis:
     if header_row_idx > 0:
         warnings.append(f"Los datos comienzan en la fila {header_row_idx + 1} (se omitieron filas de encabezado decorativas).")
 
-    # Extraer headers (fila de headers)
+    # Extraer headers (fila de headers) conservando el índice físico de cada columna.
     header_excel_row = header_row_idx + 1  # openpyxl es 1-indexed
-    raw_headers: list[str] = []
-    for cell in ws[header_excel_row]:
-        val = _cell_value(cell)
-        if val:
-            raw_headers.append(val)
-        if len(raw_headers) >= MAX_COLS:
-            break
+    header_cells = [_cell_value(cell) for cell in ws[header_excel_row]]
+    raw_headers, header_column_indices = _extract_headers(header_cells)
 
     if not raw_headers:
         return SheetAnalysis(
             sheet_name=sheet_name,
             header_row=header_row_idx,
             detected_headers=[],
+            header_column_indices=[],
             sample_rows=[],
             suggested_dataset_type=None,
             dataset_type_scores=[],
@@ -225,16 +249,17 @@ def _analyze_sheet(ws: Any, sheet_name: str) -> SheetAnalysis:
             warnings=warnings + ["No se detectaron columnas en esta hoja."],
         )
 
-    n_cols = len(raw_headers)
+    max_col = header_column_indices[-1] + 1
 
-    # Leer filas de datos
+    # Leer filas de datos usando posiciones físicas de columna (no índices comprimidos).
     data_rows: list[list[str]] = []
     row_num = header_excel_row + 1
     rows_scanned = 0
     for row in ws.iter_rows(min_row=row_num):
         if rows_scanned >= MAX_ROWS_SCAN:
             break
-        vals = [_cell_value(row[i]) if i < len(row) else "" for i in range(n_cols)]
+        vals = [_cell_value(row[i]) if i < len(row) else "" for i in range(max_col)]
+        vals = _strip_trailing_empty(vals)
         non_empty = sum(1 for v in vals if v)
         if non_empty == 0:
             continue
@@ -244,11 +269,49 @@ def _analyze_sheet(ws: Any, sheet_name: str) -> SheetAnalysis:
     sample_rows = [row for row in data_rows[:SAMPLE_ROWS]]
     total_data_rows = len(data_rows)
 
-    # Sugerir tipo de dataset
+    return _build_sheet_analysis(
+        sheet_name=sheet_name,
+        header_row=header_row_idx,
+        raw_headers=raw_headers,
+        header_column_indices=header_column_indices,
+        sample_rows=sample_rows,
+        total_data_rows=total_data_rows,
+        warnings=warnings,
+        has_merged_cells=has_merged,
+    )
+
+
+def _warn_boolean_columns(
+    raw_headers: list[str],
+    header_column_indices: list[int],
+    sample_rows: list[list[str]],
+    warnings: list[str],
+) -> None:
+    for excel_col, col_idx in zip(raw_headers, header_column_indices):
+        if any(row[col_idx] in {"False", "True"} for row in sample_rows if col_idx < len(row)):
+            warnings.append(
+                f"La columna '{excel_col}' contiene valores booleanos (True/False). "
+                "Verifica que los datos sean texto, no fórmulas ni celdas vacías mal interpretadas."
+            )
+            break
+
+
+def _build_sheet_analysis(
+    *,
+    sheet_name: str,
+    header_row: int,
+    raw_headers: list[str],
+    header_column_indices: list[int],
+    sample_rows: list[list[str]],
+    total_data_rows: int,
+    warnings: list[str],
+    has_merged_cells: bool = False,
+) -> SheetAnalysis:
+    _warn_boolean_columns(raw_headers, header_column_indices, sample_rows, warnings)
+
     type_scores = _suggest_dataset_types(raw_headers)
     suggested = type_scores[0].dataset_type if type_scores and type_scores[0].score > 0 else None
 
-    # Mapear columnas al mejor dataset sugerido (o al que tenga mayor score)
     if suggested and suggested in DATASET_DEFINITIONS:
         system_fields = [f.name for f in DATASET_DEFINITIONS[suggested].fields]
     else:
@@ -276,15 +339,103 @@ def _analyze_sheet(ws: Any, sheet_name: str) -> SheetAnalysis:
 
     return SheetAnalysis(
         sheet_name=sheet_name,
-        header_row=header_row_idx,
+        header_row=header_row,
         detected_headers=raw_headers,
+        header_column_indices=header_column_indices,
         sample_rows=sample_rows,
         suggested_dataset_type=suggested,
         dataset_type_scores=type_scores,
         column_mapping=column_mapping,
-        has_merged_cells=has_merged,
+        has_merged_cells=has_merged_cells,
         total_data_rows=total_data_rows,
         warnings=warnings,
+    )
+
+
+def _read_csv_rows(file_path: str) -> list[list[str]]:
+    last_error: Exception | None = None
+    for encoding in ("utf-8-sig", "utf-8", "latin-1", "cp1252"):
+        try:
+            with open(file_path, newline="", encoding=encoding) as handle:
+                return [list(row) for row in csv.reader(handle)]
+        except UnicodeDecodeError as exc:
+            last_error = exc
+    raise ValueError("No se pudo leer el CSV: codificación no reconocida") from last_error
+
+
+def _analyze_csv_rows(rows: list[list[str]], sheet_name: str = "Datos") -> SheetAnalysis:
+    warnings: list[str] = []
+    normalized_rows = [[str(cell).strip() for cell in row] for row in rows if any(str(c).strip() for c in row)]
+
+    if not normalized_rows:
+        return SheetAnalysis(
+            sheet_name=sheet_name,
+            header_row=0,
+            detected_headers=[],
+            header_column_indices=[],
+            sample_rows=[],
+            suggested_dataset_type=None,
+            dataset_type_scores=[],
+            column_mapping=[],
+            has_merged_cells=False,
+            total_data_rows=0,
+            warnings=["No se detectaron filas con datos en el CSV."],
+        )
+
+    header_row_idx = _detect_header_row_from_rows(normalized_rows)
+    if header_row_idx > 0:
+        warnings.append(
+            f"Los datos comienzan en la fila {header_row_idx + 1} (se omitieron filas de encabezado decorativas)."
+        )
+
+    header_cells = _strip_trailing_empty(normalized_rows[header_row_idx])
+    raw_headers, header_column_indices = _extract_headers(header_cells)
+
+    if not raw_headers:
+        return SheetAnalysis(
+            sheet_name=sheet_name,
+            header_row=header_row_idx,
+            detected_headers=[],
+            header_column_indices=[],
+            sample_rows=[],
+            suggested_dataset_type=None,
+            dataset_type_scores=[],
+            column_mapping=[],
+            has_merged_cells=False,
+            total_data_rows=0,
+            warnings=warnings + ["No se detectaron columnas en el CSV."],
+        )
+
+    max_col = header_column_indices[-1] + 1
+    data_rows: list[list[str]] = []
+    for row in normalized_rows[header_row_idx + 1:]:
+        if len(data_rows) >= MAX_ROWS_SCAN:
+            break
+        vals = [(row[i] if i < len(row) else "").strip() for i in range(max_col)]
+        vals = _strip_trailing_empty(vals)
+        if not any(vals):
+            continue
+        data_rows.append(vals)
+
+    sample_rows = data_rows[:SAMPLE_ROWS]
+    return _build_sheet_analysis(
+        sheet_name=sheet_name,
+        header_row=header_row_idx,
+        raw_headers=raw_headers,
+        header_column_indices=header_column_indices,
+        sample_rows=sample_rows,
+        total_data_rows=len(data_rows),
+        warnings=warnings,
+    )
+
+
+def analyze_csv_file(file_path: str) -> ExcelAnalysis:
+    rows = _read_csv_rows(file_path)
+    sheet = _analyze_csv_rows(rows)
+    return ExcelAnalysis(
+        sheet_names=["Datos"],
+        sheets=[sheet],
+        recommended_sheet="Datos" if sheet.total_data_rows > 0 else None,
     )
 
 
@@ -329,3 +480,20 @@ def analyze_excel_bytes(file_bytes: bytes, suffix: str = ".xlsx") -> ExcelAnalys
         return analyze_excel_file(str(tmp))
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def analyze_csv_bytes(file_bytes: bytes) -> ExcelAnalysis:
+    """Analiza un archivo CSV a partir de bytes (para uso en endpoints HTTP)."""
+    tmp = Path(tempfile.mktemp(suffix=".csv"))
+    try:
+        tmp.write_bytes(file_bytes)
+        return analyze_csv_file(str(tmp))
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def analyze_upload_bytes(file_bytes: bytes, suffix: str) -> ExcelAnalysis:
+    """Analiza Excel o CSV según la extensión del archivo."""
+    if suffix.lower() == ".csv":
+        return analyze_csv_bytes(file_bytes)
+    return analyze_excel_bytes(file_bytes, suffix=suffix)

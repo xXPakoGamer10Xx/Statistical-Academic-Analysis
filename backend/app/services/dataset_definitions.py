@@ -5,7 +5,13 @@ from typing import Literal
 
 
 FieldKind = Literal["string", "int", "float"]
-DatasetType = Literal["matricula", "evaluacion_academica", "titulacion", "evaluacion_docente"]
+DatasetType = Literal[
+    "matricula",
+    "evaluacion_academica",
+    "titulacion",
+    "evaluacion_docente",
+    "caracterizacion",
+]
 
 
 @dataclass(frozen=True)
@@ -14,7 +20,51 @@ class DatasetField:
     kind: FieldKind
     required: bool = True
     description: str | None = None
+    # allowed_values: valores ESTRICTOS (se rechaza cualquier otro valor).
     allowed_values: tuple[str, ...] | None = None
+    # suggested_values: catalogo SUGERIDO (el usuario puede elegir uno o escribir el suyo).
+    suggested_values: tuple[str, ...] | None = None
+
+
+# ---------------------------------------------------------------------------
+# Catalogos estandar sugeridos para la caracterizacion del alumnado.
+# Son sugerencias: el usuario puede elegir de la lista o capturar texto libre.
+# ---------------------------------------------------------------------------
+
+CATALOGOS_CARACTERIZACION: dict[str, tuple[str, ...]] = {
+    "beca": (
+        "Manutencion",
+        "Excelencia",
+        "Apoyo Indigena",
+        "Deportiva",
+        "Movilidad",
+        "Titulacion",
+        "Apoyo Discapacidad",
+        "Otra",
+    ),
+    "discapacidad": (
+        "Motriz",
+        "Visual",
+        "Auditiva",
+        "Intelectual",
+        "Psicosocial",
+        "Del habla",
+        "Multiple",
+        "Otra",
+    ),
+    "etnia": (
+        "Nahuatl",
+        "Otomi",
+        "Mazahua",
+        "Matlatzinca",
+        "Tlahuica",
+        "Mixteco",
+        "Zapoteco",
+        "Maya",
+        "Mixe",
+        "Otra",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -23,6 +73,8 @@ class DatasetDefinition:
     label: str
     description: str
     fields: tuple[DatasetField, ...]
+    # Catalogos sugeridos por valor de una columna (ej. tipo segun categoria).
+    catalogos: dict[str, tuple[str, ...]] | None = None
 
     @property
     def required_columns(self) -> list[str]:
@@ -99,6 +151,34 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             ),
             DatasetField("puntaje", "float"),
         ),
+    ),
+    "caracterizacion": DatasetDefinition(
+        key="caracterizacion",
+        label="Caracterizacion (Becas / Discapacidad / Etnia)",
+        description=(
+            "Desglose del alumnado por tipo de beca, discapacidad o etnia. "
+            "Un registro por cada tipo, con la cantidad de alumnos por programa y ciclo."
+        ),
+        fields=(
+            DatasetField("ciclo_escolar", "string"),
+            DatasetField("programa_educativo", "string"),
+            DatasetField(
+                "categoria",
+                "string",
+                allowed_values=("beca", "discapacidad", "etnia"),
+                description="Valores permitidos: beca, discapacidad o etnia.",
+            ),
+            DatasetField(
+                "tipo",
+                "string",
+                description="Tipo especifico (ej. Manutencion, Motriz, Nahuatl). Catalogo sugerido; admite texto libre.",
+                suggested_values=tuple(
+                    sorted({v for vals in CATALOGOS_CARACTERIZACION.values() for v in vals})
+                ),
+            ),
+            DatasetField("cantidad", "int", description="Numero de alumnos de ese tipo."),
+        ),
+        catalogos=CATALOGOS_CARACTERIZACION,
     ),
 }
 

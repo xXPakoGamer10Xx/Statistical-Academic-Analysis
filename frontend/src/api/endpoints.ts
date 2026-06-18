@@ -1,5 +1,6 @@
 import { api } from "./client";
 import type {
+  CaracterizacionResumen,
   EficienciaResumen,
   EvaluacionDocenteResumen,
   ExcelAnalysis,
@@ -153,6 +154,8 @@ export const indicadoresApi = {
       .then((r) => r.data),
   docentes: (filters: FilterState) =>
     api.get<EvaluacionDocenteResumen>("/docentes", { params: buildParams(filters) }).then((r) => r.data),
+  caracterizacion: (filters: FilterState) =>
+    api.get<CaracterizacionResumen>("/caracterizacion", { params: buildParams(filters) }).then((r) => r.data),
 };
 
 export const reportsApi = {

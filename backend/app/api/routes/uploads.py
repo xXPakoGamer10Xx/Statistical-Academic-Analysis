@@ -23,7 +23,7 @@ from app.schemas.upload import (
 )
 from app.services.csv_processor import validate_rows
 from app.services.dataset_definitions import DATASET_DEFINITIONS
-from app.services.excel_analyzer import analyze_excel_bytes, ColumnMappingItem as AnalyzerMapping, DatasetTypeScore as AnalyzerScore, SheetAnalysis
+from app.services.excel_analyzer import analyze_upload_bytes, SheetAnalysis
 from app.workers.tasks import DEDUP_KEYS, MODEL_BY_TYPE, process_csv_upload
 
 router = APIRouter()
@@ -36,6 +36,7 @@ def _sheet_to_out(sa: SheetAnalysis) -> SheetAnalysisOut:
         sheet_name=sa.sheet_name,
         header_row=sa.header_row,
         detected_headers=sa.detected_headers,
+        header_column_indices=sa.header_column_indices,
         sample_rows=sa.sample_rows,
         suggested_dataset_type=sa.suggested_dataset_type,
         dataset_type_scores=[
@@ -57,8 +58,12 @@ async def analyze_excel(
     admin: SchoolAdminUser,  # noqa: ARG001
     file: UploadFile = File(...),
 ) -> ExcelAnalysisOut:
-    if not file.filename or not file.filename.lower().endswith((".xlsx", ".xls")):
-        raise HTTPException(400, "Solo se aceptan archivos Excel (.xlsx, .xls) para el análisis automático")
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in {".xlsx", ".xls", ".csv"}:
+        raise HTTPException(
+            400,
+            "Solo se aceptan archivos Excel (.xlsx, .xls) o CSV (.csv) para el análisis automático",
+        )
 
     contents = await file.read()
     max_size = settings.UPLOAD_MAX_SIZE_MB * 1024 * 1024
@@ -66,8 +71,7 @@ async def analyze_excel(
         raise HTTPException(413, f"Archivo excede el tamaño máximo ({settings.UPLOAD_MAX_SIZE_MB}MB)")
 
     try:
-        suffix = Path(file.filename).suffix.lower() or ".xlsx"
-        analysis = analyze_excel_bytes(contents, suffix=suffix)
+        analysis = analyze_upload_bytes(contents, suffix=suffix or ".xlsx")
     except Exception as exc:
         raise HTTPException(422, f"No se pudo analizar el archivo: {exc}") from exc
 
@@ -181,6 +185,11 @@ def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
                 "matricula_generacional", "concluyeron_estudios", "egresados", "titulados",
                 "ingresados_ns",
             ] if c in rows[0]},
+        )
+    elif dataset_type == "caracterizacion":
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_caracterizacion",
+            set_={"cantidad": stmt.excluded["cantidad"]},
         )
     return stmt
 

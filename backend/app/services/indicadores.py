@@ -14,11 +14,15 @@ Fórmulas (de la matriz institucional):
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.caracterizacion import Caracterizacion
 from app.models.evaluacion import EvaluacionAcademica, EvaluacionDocente
 from app.models.matricula import Matricula
 from app.models.titulacion import Titulacion
 from app.services.formulas import calculate_matricula_actual, calculate_percentage
 from app.schemas.indicadores import (
+    CaracterizacionCategoria,
+    CaracterizacionResumen,
+    CaracterizacionTipo,
     EficienciaPunto,
     EficienciaResumen,
     EvaluacionDocentePunto,
@@ -243,6 +247,47 @@ async def calcular_evaluacion_docente(
     return EvaluacionDocenteResumen(
         docentes=docentes,
         promedio_institucional=promedio_institucional,
+    )
+
+
+async def calcular_caracterizacion(
+    db: AsyncSession,
+    subsistema_id: int | None,
+    ciclo_escolar: str | None = None,
+    programa_educativo: str | None = None,
+) -> CaracterizacionResumen:
+    """Suma de alumnos por categoria (beca/discapacidad/etnia) y tipo."""
+    query = select(
+        Caracterizacion.categoria,
+        Caracterizacion.tipo,
+        func.sum(Caracterizacion.cantidad).label("cantidad"),
+    ).group_by(Caracterizacion.categoria, Caracterizacion.tipo)
+    query = _apply_filters(
+        query, Caracterizacion, subsistema_id, ciclo_escolar, programa_educativo
+    )
+    query = query.order_by(Caracterizacion.categoria, func.sum(Caracterizacion.cantidad).desc())
+    rows = (await db.execute(query)).all()
+
+    agrupado: dict[str, list[CaracterizacionTipo]] = {}
+    for r in rows:
+        cantidad = int(r.cantidad or 0)
+        agrupado.setdefault(r.categoria, []).append(
+            CaracterizacionTipo(tipo=r.tipo, cantidad=cantidad)
+        )
+
+    categorias = [
+        CaracterizacionCategoria(
+            categoria=cat,
+            total=sum(t.cantidad for t in tipos),
+            tipos=tipos,
+        )
+        for cat, tipos in agrupado.items()
+    ]
+    categorias.sort(key=lambda c: c.categoria)
+
+    return CaracterizacionResumen(
+        total=sum(c.total for c in categorias),
+        categorias=categorias,
     )
 
 

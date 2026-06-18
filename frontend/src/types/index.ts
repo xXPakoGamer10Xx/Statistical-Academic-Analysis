@@ -46,13 +46,16 @@ export interface DatasetField {
   required: boolean;
   description: string | null;
   allowed_values: string[] | null;
+  suggested_values?: string[] | null;
 }
 
 export interface DatasetDefinition {
-  key: "matricula" | "evaluacion_academica" | "titulacion" | "evaluacion_docente";
+  key: "matricula" | "evaluacion_academica" | "titulacion" | "evaluacion_docente" | "caracterizacion";
   label: string;
   description: string;
   fields: DatasetField[];
+  /** Catalogo sugerido por valor de otra columna (ej. tipo segun categoria). */
+  catalogos?: Record<string, string[]> | null;
 }
 
 export interface MatriculaPunto {
@@ -132,6 +135,7 @@ export interface SheetAnalysis {
   sheet_name: string;
   header_row: number;
   detected_headers: string[];
+  header_column_indices?: number[];
   sample_rows: string[][];
   suggested_dataset_type: string | null;
   dataset_type_scores: DatasetTypeScore[];
@@ -171,4 +175,20 @@ export interface IndicadoresOpcionales {
   cobertura: IndicadorPorcentual[];
   abandono_escolar: IndicadorPorcentual[];
   absorcion: IndicadorPorcentual[];
+}
+
+export interface CaracterizacionTipo {
+  tipo: string;
+  cantidad: number;
+}
+
+export interface CaracterizacionCategoria {
+  categoria: string;
+  total: number;
+  tipos: CaracterizacionTipo[];
+}
+
+export interface CaracterizacionResumen {
+  total: number;
+  categorias: CaracterizacionCategoria[];
 }
