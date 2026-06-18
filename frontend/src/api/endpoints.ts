@@ -198,6 +198,7 @@ export const reportsApi = {
       rendimiento: "Rendimiento Académico",
       eficiencia: "Eficiencia Terminal",
       docentes: "Evaluación Docente",
+      caracterizacion: "Caracterización del alumnado",
     };
     const title = sectionTitles[seccion] ?? seccion;
 
@@ -326,6 +327,7 @@ export const reportsApi = {
       rendimiento: "Rendimiento Académico",
       eficiencia: "Eficiencia Terminal",
       docentes: "Evaluación Docente",
+      caracterizacion: "Caracterización del alumnado",
     };
     const title = sectionTitles[seccion] ?? seccion;
 

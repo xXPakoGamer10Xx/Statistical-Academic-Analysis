@@ -101,6 +101,36 @@
 </table>
 {% endif %}
 
+{% if caracterizacion %}
+<h2>Caracterización del alumnado</h2>
+<div class="summary">
+  <div class="card"><div class="label">Total caracterizados</div><div class="value">{{ caracterizacion.total }}</div></div>
+  {% for cat in caracterizacion.categorias %}
+    {% if cat.categoria == "beca" %}
+      <div class="card"><div class="label">Becados</div><div class="value">{{ cat.total }}</div></div>
+    {% elif cat.categoria == "discapacidad" %}
+      <div class="card"><div class="label">Con discapacidad</div><div class="value">{{ cat.total }}</div></div>
+    {% elif cat.categoria == "etnia" %}
+      <div class="card"><div class="label">Pertenecen a una etnia</div><div class="value">{{ cat.total }}</div></div>
+    {% endif %}
+  {% endfor %}
+</div>
+<table>
+  <thead><tr><th>Categoría</th><th>Tipo</th><th>Alumnos</th></tr></thead>
+  <tbody>
+  {% for cat in caracterizacion.categorias %}
+    {% for t in cat.tipos %}
+      <tr>
+        <td>{{ cat.categoria|title }}</td>
+        <td>{{ t.tipo }}</td>
+        <td>{{ t.cantidad }}</td>
+      </tr>
+    {% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 <footer>Plataforma de Análisis Estadístico Académico — Documento generado automáticamente.</footer>
 </body>
 </html>

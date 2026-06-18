@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from weasyprint import HTML
 
 from app.services.indicadores import (
+    calcular_caracterizacion,
     calcular_eficiencia,
     calcular_evaluacion_docente,
     calcular_matricula,
@@ -47,6 +48,10 @@ async def generar_reporte_pdf(
         contexto["eficiencia"] = await calcular_eficiencia(db, subsistema_id=subsistema_id)
     if seccion in {"docentes", "completo"}:
         contexto["docentes"] = await calcular_evaluacion_docente(
+            db, subsistema_id=subsistema_id, ciclo_escolar=ciclo_escolar
+        )
+    if seccion in {"caracterizacion", "completo"}:
+        contexto["caracterizacion"] = await calcular_caracterizacion(
             db, subsistema_id=subsistema_id, ciclo_escolar=ciclo_escolar
         )
 

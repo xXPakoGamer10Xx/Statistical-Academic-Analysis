@@ -13,7 +13,10 @@ router = APIRouter()
 async def export_pdf(
     user: SchoolAdminUser,
     db: DbDep,
-    seccion: str = Query("matricula", regex="^(matricula|rendimiento|eficiencia|docentes|completo)$"),
+    seccion: str = Query(
+        "matricula",
+        regex="^(matricula|rendimiento|eficiencia|docentes|caracterizacion|completo)$",
+    ),
     subsistema_id: int | None = Query(None),
     ciclo_escolar: str | None = Query(None),
 ) -> Response:

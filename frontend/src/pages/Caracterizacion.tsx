@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { indicadoresApi } from "@/api/endpoints";
+import { indicadoresApi, reportsApi } from "@/api/endpoints";
 import { BarChart } from "@/components/charts/BarChart";
 import { PieChart } from "@/components/charts/PieChart";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { ExportMenu } from "@/components/ui/ExportMenu";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { useFilters, hasActiveFilters } from "@/stores/filters";
 import type { CaracterizacionCategoria } from "@/types";
@@ -52,6 +53,7 @@ function CategoriaCard({ cat }: { cat: CaracterizacionCategoria }) {
 
 export function Caracterizacion() {
   const filters = useFilters("caracterizacion");
+  const exportDisabled = !hasActiveFilters(filters);
 
   const { data, isLoading } = useQuery({
     queryKey: ["caracterizacion", filters],
@@ -72,6 +74,15 @@ export function Caracterizacion() {
           <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">
             Desglose por tipo de beca, discapacidad y etnia — apoyo para la asignación de becas
           </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <ExportMenu
+            disabled={exportDisabled}
+            disabledHint="Aplica al menos un filtro para exportar"
+            onExportHistorical={() => reportsApi.downloadPdf("caracterizacion", filters)}
+            onExportPdf={() => reportsApi.downloadImagePdf("caracterizacion", "charts-caracterizacion", filters)}
+            onExportImage={() => reportsApi.downloadImage("caracterizacion", "charts-caracterizacion", filters)}
+          />
         </div>
       </div>
 
