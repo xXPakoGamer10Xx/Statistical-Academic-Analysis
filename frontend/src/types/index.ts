@@ -40,6 +40,38 @@ export interface UploadJob {
   completed_at: string | null;
 }
 
+export interface FieldChange {
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+}
+
+export interface RowDiff {
+  key: Record<string, string>;
+  changes?: FieldChange[] | null;
+}
+
+export interface UploadCompareSummary {
+  added: number;
+  removed: number;
+  modified: number;
+  unchanged: number;
+}
+
+export interface UploadCompareResult {
+  dataset_type: string;
+  subsistema_id: number;
+  baseline_rows: number;
+  new_rows_valid: number;
+  validation_errors: number;
+  identical_to_last_upload: boolean;
+  summary: UploadCompareSummary;
+  added: RowDiff[];
+  removed: RowDiff[];
+  modified: RowDiff[];
+  truncated: boolean;
+}
+
 export interface DatasetField {
   name: string;
   kind: "string" | "int" | "float";
@@ -50,7 +82,7 @@ export interface DatasetField {
 }
 
 export interface DatasetDefinition {
-  key: "matricula" | "evaluacion_academica" | "titulacion" | "evaluacion_docente" | "caracterizacion";
+  key: "matricula" | "evaluacion_academica" | "titulacion" | "evaluacion_docente" | "becas" | "caracterizacion";
   label: string;
   description: string;
   fields: DatasetField[];

@@ -108,7 +108,7 @@ export function Caracterizacion() {
             <Card>
               <CardContent className="py-12 text-center text-slate-400">
                 {activo
-                  ? "No hay datos de caracterización para los filtros seleccionados. Captúralos en la sección Cargas (tipo de datos: Caracterización)."
+                  ? "No hay datos de caracterización para los filtros seleccionados. Captúralos en Cargas (Becas o Caracterización)."
                   : "Aplica un filtro (ciclo escolar) para ver el desglose."}
               </CardContent>
             </Card>

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -19,11 +20,20 @@ from app.schemas.upload import (
     DatasetTypeScore,
     ManualUploadIn,
     ManualUploadOut,
+    UploadCompareOut,
+    UploadCompareSummary,
     UploadJobOut,
+    FieldChange,
+    RowDiff,
 )
-from app.services.csv_processor import validate_rows
+from app.services.csv_processor import parse_and_validate_smart, validate_rows
 from app.services.dataset_definitions import DATASET_DEFINITIONS
 from app.services.excel_analyzer import analyze_upload_bytes, SheetAnalysis
+from app.services.upload_diff import (
+    compare_upload_with_baseline,
+    get_compare_keys,
+    load_baseline_rows,
+)
 from app.workers.tasks import DEDUP_KEYS, MODEL_BY_TYPE, process_csv_upload
 
 router = APIRouter()
@@ -82,6 +92,121 @@ async def analyze_excel(
     )
 
 
+def _count_failed_rows(errors: list[dict]) -> int:
+    return len({error["row"] for error in errors})
+
+
+def _parse_mapping_config(
+    column_mapping: str | None,
+    sheet_name: str | None,
+    header_row: int,
+) -> dict | None:
+    parsed_mapping: dict | None = None
+    if column_mapping:
+        try:
+            parsed_mapping = json.loads(column_mapping)
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise HTTPException(400, "column_mapping debe ser un JSON válido") from exc
+
+    if parsed_mapping or sheet_name or header_row != 0:
+        return {
+            "sheet_name": sheet_name,
+            "header_row": header_row,
+            "column_mapping": parsed_mapping,
+        }
+    return None
+
+
+@router.post("/compare", response_model=UploadCompareOut)
+async def compare_upload(
+    admin: SchoolAdminUser,
+    db: DbDep,
+    subsistema_id: int = Form(...),
+    dataset_type: str = Form(...),
+    file: UploadFile = File(...),
+    sheet_name: str | None = Form(None),
+    header_row: int = Form(0),
+    column_mapping: str | None = Form(None),
+) -> UploadCompareOut:
+    if dataset_type not in ALLOWED_TYPES:
+        raise HTTPException(400, f"Tipo de dataset inválido. Permitidos: {ALLOWED_TYPES}")
+
+    if admin.role == "admin_escolar" and subsistema_id != admin.subsistema_id:
+        raise HTTPException(403, "Solo puedes comparar datos de tu propia escuela")
+
+    if not file.filename or not file.filename.lower().endswith((".csv", ".xlsx", ".xls")):
+        raise HTTPException(400, "El archivo debe ser CSV o Excel (.xlsx, .xls)")
+
+    contents = await file.read()
+    max_size = settings.UPLOAD_MAX_SIZE_MB * 1024 * 1024
+    if len(contents) > max_size:
+        raise HTTPException(413, f"Archivo excede el tamaño máximo ({settings.UPLOAD_MAX_SIZE_MB}MB)")
+
+    mapping_config = _parse_mapping_config(column_mapping, sheet_name, header_row)
+    file_sha256 = hashlib.sha256(contents).hexdigest()
+
+    suffix = Path(file.filename).suffix.lower() or ".csv"
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(contents)
+            temp_path = Path(tmp.name)
+
+        df, errors = parse_and_validate_smart(
+            str(temp_path),
+            dataset_type,
+            sheet_name=mapping_config.get("sheet_name") if mapping_config else None,
+            header_row=mapping_config.get("header_row", 0) if mapping_config else 0,
+            column_mapping=mapping_config.get("column_mapping") if mapping_config else None,
+        )
+        df["subsistema_id"] = subsistema_id
+
+        dedup_keys = list(get_compare_keys(dataset_type))
+        df = df.drop_duplicates(subset=dedup_keys, keep="last")
+
+        new_rows = df.to_dict(orient="records")
+        baseline_rows = await load_baseline_rows(db, dataset_type, subsistema_id)
+        diff = compare_upload_with_baseline(new_rows, baseline_rows, dataset_type)
+
+        last_upload = await db.execute(
+            select(UploadJob)
+            .where(
+                UploadJob.subsistema_id == subsistema_id,
+                UploadJob.dataset_type == dataset_type,
+                UploadJob.status.in_(("success", "success_with_warnings")),
+            )
+            .order_by(UploadJob.created_at.desc())
+            .limit(1)
+        )
+        previous_job = last_upload.scalar_one_or_none()
+        identical_to_last_upload = bool(previous_job and previous_job.file_sha256 == file_sha256)
+
+        return UploadCompareOut(
+            dataset_type=dataset_type,
+            subsistema_id=subsistema_id,
+            baseline_rows=len(baseline_rows),
+            new_rows_valid=len(new_rows),
+            validation_errors=_count_failed_rows(errors),
+            identical_to_last_upload=identical_to_last_upload,
+            summary=UploadCompareSummary(**diff["summary"]),
+            added=[RowDiff(**item) for item in diff["added"]],
+            removed=[RowDiff(**item) for item in diff["removed"]],
+            modified=[
+                RowDiff(
+                    key=item["key"],
+                    changes=[FieldChange(**change) for change in item["changes"]],
+                )
+                for item in diff["modified"]
+            ],
+            truncated=diff["truncated"],
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
 @router.post("", response_model=UploadJobOut, status_code=status.HTTP_202_ACCEPTED)
 async def upload_csv(
     admin: SchoolAdminUser,
@@ -108,12 +233,7 @@ async def upload_csv(
     if len(contents) > max_size:
         raise HTTPException(413, f"Archivo excede el tamaño máximo ({settings.UPLOAD_MAX_SIZE_MB}MB)")
 
-    parsed_mapping: dict | None = None
-    if column_mapping:
-        try:
-            parsed_mapping = json.loads(column_mapping)
-        except (json.JSONDecodeError, ValueError) as exc:
-            raise HTTPException(400, "column_mapping debe ser un JSON válido") from exc
+    mapping_config = _parse_mapping_config(column_mapping, sheet_name, header_row)
 
     upload_dir = Path(settings.UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -123,14 +243,6 @@ async def upload_csv(
     file_path = upload_dir / safe_name
     file_path.write_bytes(contents)
     file_sha256 = hashlib.sha256(contents).hexdigest()
-
-    mapping_config: dict | None = None
-    if parsed_mapping or sheet_name or header_row != 0:
-        mapping_config = {
-            "sheet_name": sheet_name,
-            "header_row": header_row,
-            "column_mapping": parsed_mapping,
-        }
 
     job = UploadJob(
         id=job_id,
@@ -185,6 +297,11 @@ def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
                 "matricula_generacional", "concluyeron_estudios", "egresados", "titulados",
                 "ingresados_ns",
             ] if c in rows[0]},
+        )
+    elif dataset_type == "becas":
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_beca",
+            set_={"cantidad": stmt.excluded["cantidad"]},
         )
     elif dataset_type == "caracterizacion":
         stmt = stmt.on_conflict_do_update(

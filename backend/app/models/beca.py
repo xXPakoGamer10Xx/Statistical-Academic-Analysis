@@ -6,22 +6,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class Caracterizacion(Base):
-    """Desglose poblacional del alumnado por categoria (discapacidad, etnia).
+class Beca(Base):
+    """Desglose del alumnado becado por tipo de beca, programa y ciclo escolar."""
 
-    Guarda CUANTOS alumnos hay de cada tipo dentro de una categoria, por programa
-    y ciclo escolar. Las becas se almacenan en la tabla ``becas``.
-    """
-
-    __tablename__ = "caracterizacion"
+    __tablename__ = "becas"
     __table_args__ = (
         UniqueConstraint(
             "subsistema_id",
             "ciclo_escolar",
             "programa_educativo",
-            "categoria",
             "tipo",
-            name="uq_caracterizacion",
+            name="uq_beca",
         ),
     )
 
@@ -31,9 +26,6 @@ class Caracterizacion(Base):
     )
     ciclo_escolar: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     programa_educativo: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
-    # Categoria: discapacidad | etnia
-    categoria: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
-    # Tipo especifico dentro de la categoria (ej. "Manutencion", "Motriz", "Nahuatl")
     tipo: Mapped[str] = mapped_column(String(100), nullable=False)
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 

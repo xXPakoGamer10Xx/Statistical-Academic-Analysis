@@ -30,7 +30,7 @@ export function Logo({ className }: Props) {
     <img
       src={LOGO_CANDIDATES[idx]}
       alt="UPTEX"
-      className={cn("object-contain", className)}
+      className={cn("object-contain rounded-2xl", className)}
       onError={() => setIdx((i) => i + 1)}
     />
   );

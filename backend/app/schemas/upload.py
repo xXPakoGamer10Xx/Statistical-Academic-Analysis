@@ -10,6 +10,7 @@ DatasetType = Literal[
     "evaluacion_academica",
     "titulacion",
     "evaluacion_docente",
+    "becas",
     "caracterizacion",
 ]
 
@@ -98,6 +99,42 @@ class ManualUploadOut(BaseModel):
     rows_processed: int
     rows_failed: int
     errors: list[dict] | None = None
+
+
+# ---------------------------------------------------------------------------
+# Comparación de plantilla vs datos actuales
+# ---------------------------------------------------------------------------
+
+class FieldChange(BaseModel):
+    field: str
+    old_value: str | None = None
+    new_value: str | None = None
+
+
+class RowDiff(BaseModel):
+    key: dict[str, str]
+    changes: list[FieldChange] | None = None
+
+
+class UploadCompareSummary(BaseModel):
+    added: int
+    removed: int
+    modified: int
+    unchanged: int
+
+
+class UploadCompareOut(BaseModel):
+    dataset_type: str
+    subsistema_id: int
+    baseline_rows: int
+    new_rows_valid: int
+    validation_errors: int
+    identical_to_last_upload: bool
+    summary: UploadCompareSummary
+    added: list[RowDiff]
+    removed: list[RowDiff]
+    modified: list[RowDiff]
+    truncated: bool
 
 
 class DatasetDefinitionOut(BaseModel):

@@ -10,6 +10,7 @@ DatasetType = Literal[
     "evaluacion_academica",
     "titulacion",
     "evaluacion_docente",
+    "becas",
     "caracterizacion",
 ]
 
@@ -27,21 +28,22 @@ class DatasetField:
 
 
 # ---------------------------------------------------------------------------
-# Catalogos estandar sugeridos para la caracterizacion del alumnado.
-# Son sugerencias: el usuario puede elegir de la lista o capturar texto libre.
+# Catalogos estandar sugeridos. Son sugerencias: el usuario puede elegir de la lista
+# o capturar texto libre.
 # ---------------------------------------------------------------------------
 
+TIPOS_BECA: tuple[str, ...] = (
+    "Manutencion",
+    "Excelencia",
+    "Apoyo Indigena",
+    "Deportiva",
+    "Movilidad",
+    "Titulacion",
+    "Apoyo Discapacidad",
+    "Otra",
+)
+
 CATALOGOS_CARACTERIZACION: dict[str, tuple[str, ...]] = {
-    "beca": (
-        "Manutencion",
-        "Excelencia",
-        "Apoyo Indigena",
-        "Deportiva",
-        "Movilidad",
-        "Titulacion",
-        "Apoyo Discapacidad",
-        "Otra",
-    ),
     "discapacidad": (
         "Motriz",
         "Visual",
@@ -152,11 +154,30 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             DatasetField("puntaje", "float"),
         ),
     ),
+    "becas": DatasetDefinition(
+        key="becas",
+        label="Becas",
+        description=(
+            "Desglose del alumnado becado por tipo de beca. "
+            "Un registro por cada tipo, con la cantidad de alumnos por programa y ciclo."
+        ),
+        fields=(
+            DatasetField("ciclo_escolar", "string"),
+            DatasetField("programa_educativo", "string"),
+            DatasetField(
+                "tipo",
+                "string",
+                description="Tipo de beca (ej. Manutencion, Excelencia). Catalogo sugerido; admite texto libre.",
+                suggested_values=TIPOS_BECA,
+            ),
+            DatasetField("cantidad", "int", description="Numero de alumnos becados de ese tipo."),
+        ),
+    ),
     "caracterizacion": DatasetDefinition(
         key="caracterizacion",
-        label="Caracterizacion (Becas / Discapacidad / Etnia)",
+        label="Caracterizacion (Discapacidad / Etnia)",
         description=(
-            "Desglose del alumnado por tipo de beca, discapacidad o etnia. "
+            "Desglose del alumnado por discapacidad o etnia. "
             "Un registro por cada tipo, con la cantidad de alumnos por programa y ciclo."
         ),
         fields=(
@@ -165,13 +186,13 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             DatasetField(
                 "categoria",
                 "string",
-                allowed_values=("beca", "discapacidad", "etnia"),
-                description="Valores permitidos: beca, discapacidad o etnia.",
+                allowed_values=("discapacidad", "etnia"),
+                description="Valores permitidos: discapacidad o etnia.",
             ),
             DatasetField(
                 "tipo",
                 "string",
-                description="Tipo especifico (ej. Manutencion, Motriz, Nahuatl). Catalogo sugerido; admite texto libre.",
+                description="Tipo especifico (ej. Motriz, Nahuatl). Catalogo sugerido; admite texto libre.",
                 suggested_values=tuple(
                     sorted({v for vals in CATALOGOS_CARACTERIZACION.values() for v in vals})
                 ),

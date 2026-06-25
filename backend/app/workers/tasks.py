@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.beca import Beca
 from app.models.caracterizacion import Caracterizacion
 from app.models.evaluacion import EvaluacionAcademica, EvaluacionDocente
 from app.models.matricula import Matricula
@@ -27,12 +28,14 @@ MODEL_BY_TYPE = {
     "evaluacion_academica": EvaluacionAcademica,
     "titulacion": Titulacion,
     "evaluacion_docente": EvaluacionDocente,
+    "becas": Beca,
     "caracterizacion": Caracterizacion,
 }
 
 DEDUP_KEYS: dict[str, tuple[str, ...]] = {
     "matricula": ("subsistema_id", "ciclo_escolar", "cuatrimestre", "programa_educativo"),
     "titulacion": ("subsistema_id", "generacion", "programa_educativo"),
+    "becas": ("subsistema_id", "ciclo_escolar", "programa_educativo", "tipo"),
     "caracterizacion": (
         "subsistema_id",
         "ciclo_escolar",
@@ -75,6 +78,11 @@ def _upsert_rows(session: Session, dataset_type: str, rows: list[dict]) -> int:
                 "matricula_generacional", "concluyeron_estudios", "egresados", "titulados",
                 "ingresados_ns",
             ] if c in rows[0]},
+        )
+    elif dataset_type == "becas":
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_beca",
+            set_={"cantidad": stmt.excluded["cantidad"]},
         )
     elif dataset_type == "caracterizacion":
         stmt = stmt.on_conflict_do_update(

@@ -169,9 +169,9 @@ export function Layout() {
 
       <div className="md:hidden sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 px-4 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 items-center justify-center rounded-lg bg-white px-2 shadow-sm ring-1 ring-slate-200/70">
-            <Logo className="h-6 w-auto" />
-          </div>
+          <NavLink to="/" end className="block">
+            <Logo className="h-12 w-auto" />
+          </NavLink>
           <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">Análisis Stats</span>
         </div>
         <button 
@@ -191,46 +191,7 @@ export function Layout() {
           className={cn("hidden md:flex fixed left-0 right-0 z-50 justify-center pointer-events-none", dock.posClass)}
         >
           <div className="flex items-center gap-2 p-2 rounded-2xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] pointer-events-auto">
-            <NavLink
-               to="/"
-               end
-               className={cn(
-                 "mr-1 ml-1 flex items-center justify-center relative group isolate h-10 w-auto rounded-xl transition-all duration-200 hover:scale-105",
-                 dock.key === 'top' ? "hover:-translate-y-1 align-bottom" : "hover:translate-y-1 align-top"
-               )}
-               onMouseEnter={() => setHoveredItem(`logo-${dock.key}`)}
-               onMouseLeave={() => setHoveredItem(null)}
-            >
-              {({ isActive }) => (
-                <>
-                  <div className={cn(
-                    "h-10 flex items-center justify-center rounded-xl bg-white px-2.5 shadow-md transition-all ring-1",
-                    isActive ? "ring-brand-500/60 shadow-brand-500/20" : "ring-slate-200/70 dark:ring-slate-700/60"
-                  )}>
-                    <Logo className="h-6 w-auto" />
-                  </div>
-                  {isActive && (
-                    <div className={cn("absolute w-1 h-1 rounded-full bg-brand-500 z-10", dock.key === 'top' ? "-bottom-1" : "-top-1")} />
-                  )}
-                  <AnimatePresence>
-                    {hoveredItem === `logo-${dock.key}` && (
-                      <motion.div
-                        initial={{ opacity: 0, y: dock.key === 'top' ? 10 : -10, scale: 0.8 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: dock.key === 'top' ? 5 : -5, scale: 0.9 }}
-                        className={cn("absolute px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50", dock.key === 'top' ? "top-full mt-3" : "bottom-full mb-3")}
-                      >
-                        Resumen General
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              )}
-            </NavLink>
-
-            <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 mx-1" />
-
-            {NAV_ITEMS.filter((i) => i.to !== "/" && (!i.allowedRoles || i.allowedRoles.includes(userRole))).map((item) => {
+            {NAV_ITEMS.filter((i) => !i.allowedRoles || i.allowedRoles.includes(userRole)).map((item) => {
               const isActive = item.to === "/" 
                 ? location.pathname === "/" 
                 : location.pathname.startsWith(item.to);
@@ -327,6 +288,11 @@ export function Layout() {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col md:pt-24 md:pb-24 mt-0"
       >
+        <div className="hidden md:block absolute top-4 left-6 z-10">
+          <NavLink to="/" end className="block w-fit">
+            <Logo className="h-20 w-auto" />
+          </NavLink>
+        </div>
         <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div

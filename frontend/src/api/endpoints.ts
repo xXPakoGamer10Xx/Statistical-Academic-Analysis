@@ -12,6 +12,7 @@ import type {
   Subsistema,
   TokenResponse,
   UploadJob,
+  UploadCompareResult,
   User,
 } from "@/types";
 
@@ -87,6 +88,23 @@ export const uploadsApi = {
     fd.append("file", file);
     return api
       .post<ExcelAnalysis>("/uploads/analyze", fd, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((r) => r.data);
+  },
+  compare: (
+    subsistemaId: number,
+    datasetType: string,
+    file: File,
+    options?: { sheetName?: string; headerRow?: number; columnMapping?: Record<string, string> },
+  ): Promise<UploadCompareResult> => {
+    const fd = new FormData();
+    fd.append("subsistema_id", String(subsistemaId));
+    fd.append("dataset_type", datasetType);
+    fd.append("file", file);
+    if (options?.sheetName) fd.append("sheet_name", options.sheetName);
+    if (options?.headerRow !== undefined) fd.append("header_row", String(options.headerRow));
+    if (options?.columnMapping) fd.append("column_mapping", JSON.stringify(options.columnMapping));
+    return api
+      .post<UploadCompareResult>("/uploads/compare", fd, { headers: { "Content-Type": "multipart/form-data" } })
       .then((r) => r.data);
   },
   uploadSmart: (

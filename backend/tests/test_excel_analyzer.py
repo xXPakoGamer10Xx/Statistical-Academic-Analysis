@@ -7,7 +7,7 @@ def test_csv_caracterizacion_maps_programa_educativo(tmp_path):
     csv_path = tmp_path / "caracterizacion.csv"
     csv_path.write_text(
         "ciclo_escolar,programa_educativo,categoria,tipo,cantidad\n"
-        "2024-2025,Mecatronica,beca,Titulacion,10\n",
+        "2024-2025,Mecatronica,discapacidad,Motriz,10\n",
         encoding="utf-8",
     )
 
@@ -24,7 +24,7 @@ def test_excel_skips_empty_header_without_shifting_values(tmp_path):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.append(["ciclo_escolar", "", "programa_educativo", "categoria", "tipo", "cantidad"])
-    ws.append(["2024-2025", False, "Mecatronica", "beca", "Titulacion", 10])
+    ws.append(["2024-2025", False, "Mecatronica", "discapacidad", "Motriz", 10])
     wb.save(xlsx_path)
 
     sheet = analyze_excel_file(str(xlsx_path)).sheets[0]

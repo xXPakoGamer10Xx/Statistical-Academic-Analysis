@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/utils";
 import { ManualEntry } from "@/pages/cargas/ManualEntry";
-import type { WizardState, WizardStep, SheetAnalysis } from "@/types";
+import type { UploadCompareResult, WizardState, WizardStep, SheetAnalysis } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,7 +32,8 @@ const DATASET_LABELS: Record<string, string> = {
   evaluacion_academica: "Evaluación Académica",
   titulacion: "Titulación",
   evaluacion_docente: "Evaluación Docente",
-  caracterizacion: "Caracterización (Becas / Discapacidad / Etnia)",
+  becas: "Becas",
+  caracterizacion: "Caracterización (Discapacidad / Etnia)",
 };
 
 const STEPS: { id: WizardStep; label: string }[] = [
@@ -51,6 +52,139 @@ function confidenceColor(c: number) {
 
 function pct(n: number) {
   return `${Math.round(n * 100)}%`;
+}
+
+function formatDiffKey(key: Record<string, string>) {
+  return Object.entries(key)
+    .filter(([field]) => field !== "subsistema_id")
+    .map(([field, value]) => `${field}: ${value}`)
+    .join(" · ");
+}
+
+function ComparePanel({
+  compare,
+  isLoading,
+  isError,
+}: {
+  compare: UploadCompareResult | undefined;
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4 text-sm text-slate-500 dark:text-slate-400">
+        Comparando con los datos actuales en el sistema...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-xl border border-amber-100 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-300">
+        No se pudo generar la comparación. Puedes continuar con la vista previa y confirmar la carga.
+      </div>
+    );
+  }
+
+  if (!compare) return null;
+
+  const { summary } = compare;
+
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-4">
+      <div>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Comparación con datos actuales</h3>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {compare.baseline_rows === 0
+            ? "Primera carga para esta escuela y tipo de datos."
+            : `Se compararon ${compare.new_rows_valid} filas válidas contra ${compare.baseline_rows} registros en BD.`}
+        </p>
+      </div>
+
+      {compare.identical_to_last_upload && (
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/50 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+          Este archivo es idéntico al de la última carga exitosa.
+        </div>
+      )}
+
+      {compare.validation_errors > 0 && (
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/50 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          {compare.validation_errors} fila(s) con errores de validación no se incluyeron en la comparación.
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <span className="rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          +{summary.added} nuevas
+        </span>
+        <span className="rounded-full bg-amber-50 dark:bg-amber-900/30 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+          ~{summary.modified} modificadas
+        </span>
+        <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          -{summary.removed} no presentes en archivo
+        </span>
+        <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          ={summary.unchanged} sin cambios
+        </span>
+      </div>
+
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        Las filas que no vengan en el archivo no se eliminan automáticamente de la base de datos.
+      </p>
+
+      {(compare.added.length > 0 || compare.modified.length > 0 || compare.removed.length > 0) && (
+        <div className="space-y-3 text-xs">
+          {compare.modified.length > 0 && (
+            <div>
+              <p className="mb-1 font-semibold text-slate-700 dark:text-slate-200">Cambios detectados</p>
+              <div className="space-y-2">
+                {compare.modified.map((row, index) => (
+                  <div key={`modified-${index}`} className="rounded-lg bg-amber-50/70 dark:bg-amber-900/10 px-3 py-2">
+                    <p className="font-medium text-slate-700 dark:text-slate-200">{formatDiffKey(row.key)}</p>
+                    <div className="mt-1 space-y-0.5 text-slate-600 dark:text-slate-400">
+                      {row.changes?.map((change) => (
+                        <p key={`${change.field}-${change.old_value}-${change.new_value}`}>
+                          {change.field}: {change.old_value ?? "—"} → {change.new_value ?? "—"}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {compare.added.length > 0 && (
+            <div>
+              <p className="mb-1 font-semibold text-slate-700 dark:text-slate-200">Filas nuevas</p>
+              <div className="space-y-1 text-slate-600 dark:text-slate-400">
+                {compare.added.map((row, index) => (
+                  <p key={`added-${index}`}>{formatDiffKey(row.key)}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {compare.removed.length > 0 && (
+            <div>
+              <p className="mb-1 font-semibold text-slate-700 dark:text-slate-200">En BD pero no en el archivo</p>
+              <div className="space-y-1 text-slate-600 dark:text-slate-400">
+                {compare.removed.map((row, index) => (
+                  <p key={`removed-${index}`}>{formatDiffKey(row.key)}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {compare.truncated && (
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Se muestran solo los primeros cambios. El resumen numérico incluye todos los registros.
+        </p>
+      )}
+    </div>
+  );
 }
 
 const INITIAL_WIZARD: WizardState = {
@@ -102,8 +236,17 @@ export function Cargas() {
   const updateWizard = (patch: Partial<WizardState>) =>
     setWizard((prev) => ({ ...prev, ...patch }));
 
-  const resetWizard = () =>
+  const resetWizard = () => {
+    compareMutation.reset();
     setWizard((prev) => ({ ...INITIAL_WIZARD, subsistemaId: prev.subsistemaId }));
+  };
+
+  const goToPreview = () => {
+    updateWizard({ step: "preview" });
+    if (wizard.file && wizard.subsistemaId) {
+      compareMutation.mutate();
+    }
+  };
 
   // --------------------------------------------------------------------------
   // Mutaciones
@@ -131,23 +274,36 @@ export function Cargas() {
     },
   });
 
-  const uploadMutation = useMutation({
-    mutationFn: () => {
-      const validMapping: Record<string, string> = {};
-      Object.entries(wizard.columnMapping).forEach(([k, v]) => {
-        if (v) validMapping[k] = v;
-      });
-      return uploadsApi.uploadSmart(
+  const buildUploadOptions = () => {
+    const validMapping: Record<string, string> = {};
+    Object.entries(wizard.columnMapping).forEach(([k, v]) => {
+      if (v) validMapping[k] = v;
+    });
+    return {
+      sheetName: wizard.selectedSheet ?? undefined,
+      headerRow: wizard.headerRow,
+      columnMapping: Object.keys(validMapping).length > 0 ? validMapping : undefined,
+    };
+  };
+
+  const compareMutation = useMutation({
+    mutationFn: () =>
+      uploadsApi.compare(
         Number(wizard.subsistemaId),
         wizard.selectedDatasetType,
         wizard.file!,
-        {
-          sheetName: wizard.selectedSheet ?? undefined,
-          headerRow: wizard.headerRow,
-          columnMapping: Object.keys(validMapping).length > 0 ? validMapping : undefined,
-        },
-      );
-    },
+        buildUploadOptions(),
+      ),
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: () =>
+      uploadsApi.uploadSmart(
+        Number(wizard.subsistemaId),
+        wizard.selectedDatasetType,
+        wizard.file!,
+        buildUploadOptions(),
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["uploads"] });
       resetWizard();
@@ -482,7 +638,7 @@ export function Cargas() {
               </Button>
               <Button
                 className="flex-1 h-11"
-                onClick={() => updateWizard({ step: "preview" })}
+                onClick={goToPreview}
                 disabled={!canProceedFromMapping}
               >
                 Ver vista previa
@@ -511,6 +667,12 @@ export function Cargas() {
 
         return (
           <div className="space-y-5">
+            <ComparePanel
+              compare={compareMutation.data}
+              isLoading={compareMutation.isPending}
+              isError={compareMutation.isError}
+            />
+
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Así quedarán las primeras filas después del mapeo. Verifica que los datos sean correctos.
             </p>

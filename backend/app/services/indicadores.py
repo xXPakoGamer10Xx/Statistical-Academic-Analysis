@@ -14,6 +14,7 @@ Fórmulas (de la matriz institucional):
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.beca import Beca
 from app.models.caracterizacion import Caracterizacion
 from app.models.evaluacion import EvaluacionAcademica, EvaluacionDocente
 from app.models.matricula import Matricula
@@ -257,6 +258,22 @@ async def calcular_caracterizacion(
     programa_educativo: str | None = None,
 ) -> CaracterizacionResumen:
     """Suma de alumnos por categoria (beca/discapacidad/etnia) y tipo."""
+    agrupado: dict[str, list[CaracterizacionTipo]] = {}
+
+    becas_query = select(
+        Beca.tipo,
+        func.sum(Beca.cantidad).label("cantidad"),
+    ).group_by(Beca.tipo)
+    becas_query = _apply_filters(
+        becas_query, Beca, subsistema_id, ciclo_escolar, programa_educativo
+    )
+    becas_query = becas_query.order_by(func.sum(Beca.cantidad).desc())
+    for r in (await db.execute(becas_query)).all():
+        cantidad = int(r.cantidad or 0)
+        agrupado.setdefault("beca", []).append(
+            CaracterizacionTipo(tipo=r.tipo, cantidad=cantidad)
+        )
+
     query = select(
         Caracterizacion.categoria,
         Caracterizacion.tipo,
@@ -266,10 +283,7 @@ async def calcular_caracterizacion(
         query, Caracterizacion, subsistema_id, ciclo_escolar, programa_educativo
     )
     query = query.order_by(Caracterizacion.categoria, func.sum(Caracterizacion.cantidad).desc())
-    rows = (await db.execute(query)).all()
-
-    agrupado: dict[str, list[CaracterizacionTipo]] = {}
-    for r in rows:
+    for r in (await db.execute(query)).all():
         cantidad = int(r.cantidad or 0)
         agrupado.setdefault(r.categoria, []).append(
             CaracterizacionTipo(tipo=r.tipo, cantidad=cantidad)
