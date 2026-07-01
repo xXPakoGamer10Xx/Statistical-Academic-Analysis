@@ -26,7 +26,7 @@ from app.schemas.upload import (
     FieldChange,
     RowDiff,
 )
-from app.services.csv_processor import parse_and_validate_smart, validate_rows
+from app.services.csv_processor import parse_and_validate_smart, rows_from_dataframe, validate_rows
 from app.services.dataset_definitions import DATASET_DEFINITIONS
 from app.services.excel_analyzer import analyze_upload_bytes, SheetAnalysis
 from app.services.upload_diff import (
@@ -164,7 +164,7 @@ async def compare_upload(
         dedup_keys = list(get_compare_keys(dataset_type))
         df = df.drop_duplicates(subset=dedup_keys, keep="last")
 
-        new_rows = df.to_dict(orient="records")
+        new_rows = rows_from_dataframe(df)
         baseline_rows = await load_baseline_rows(db, dataset_type, subsistema_id)
         diff = compare_upload_with_baseline(new_rows, baseline_rows, dataset_type)
 

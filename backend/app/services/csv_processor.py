@@ -1,6 +1,7 @@
 """Validacion y parseo de CSVs por tipo de dataset."""
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import pandas as pd
@@ -73,14 +74,22 @@ def _validate_dataframe(
 
         for field in available_fields:
             raw_value = row.get(field.name, "")
-            value = "" if raw_value is None else str(raw_value).strip()
+            value = _normalize_raw_cell(raw_value)
+            if (
+                value == ""
+                and field.kind == "int"
+                and field.required
+                and dataset_type == "matricula"
+            ):
+                normalized_row[field.name] = 0
+                continue
             parsed_value, error = _parse_field_value(field, value)
             if error:
                 row_errors.append(
                     {
                         "row": int(idx) + 2,
                         "column": field.name,
-                        "value": raw_value,
+                        "value": json_safe_value(raw_value),
                         "error": error,
                     }
                 )
@@ -93,7 +102,77 @@ def _validate_dataframe(
 
         valid_rows.append(normalized_row)
 
-    return pd.DataFrame(valid_rows, columns=definition.all_columns), errors
+    df = pd.DataFrame(valid_rows, columns=definition.all_columns)
+    return df, errors
+
+
+def json_safe_value(value: Any) -> Any:
+    """Valor serializable a JSON para reportes de error (evita NaN invalido)."""
+    cleaned = sanitize_db_value(value)
+    if cleaned is None:
+        return None
+    if isinstance(cleaned, (str, int, bool)):
+        return cleaned
+    if isinstance(cleaned, float):
+        return cleaned
+    return str(cleaned)
+
+
+def sanitize_errors_for_json(errors: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
+    if not errors:
+        return None
+    return [
+        {
+            "row": err["row"],
+            "column": err["column"],
+            "value": json_safe_value(err.get("value")),
+            "error": err["error"],
+        }
+        for err in errors
+    ]
+
+
+def _parse_cuatrimestre_label(label: str) -> int | None:
+    """Acepta 1/2/3 o etiquetas de periodo (Sep-Dic, Ene-Abr, May-Ago, SEPT.)."""
+    label = str(label).strip()
+    if label.isdigit():
+        n = int(label)
+        return n if 1 <= n <= 3 else None
+    lo = label.lower().replace(" ", "")
+    if any(x in lo for x in ("sep", "s-d", "sd", "sept")):
+        return 1
+    if any(x in lo for x in ("ene", "e-a", "ea")):
+        return 2
+    if any(x in lo for x in ("may", "m-a", "ma")):
+        return 3
+    return None
+
+
+def sanitize_db_value(value: Any) -> Any:
+    """Convierte NaN/NA de pandas a None para columnas nullable en PostgreSQL."""
+    if value is None:
+        return None
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    if hasattr(value, "item"):
+        try:
+            return value.item()
+        except (ValueError, AttributeError):
+            pass
+    return value
+
+
+def rows_from_dataframe(df: pd.DataFrame) -> list[dict[str, Any]]:
+    """DataFrame → list[dict] seguro para INSERT en PostgreSQL."""
+    return [
+        {k: sanitize_db_value(v) for k, v in row.items()}
+        for row in df.to_dict(orient="records")
+    ]
 
 
 def validate_rows(
@@ -114,11 +193,16 @@ def validate_rows(
 
         for field in definition.fields:
             raw_value = lower.get(field.name, "")
-            value = "" if raw_value is None else str(raw_value).strip()
+            value = _normalize_raw_cell(raw_value)
             parsed_value, error = _parse_field_value(field, value)
             if error:
                 row_errors.append(
-                    {"row": idx + 1, "column": field.name, "value": raw_value, "error": error}
+                    {
+                        "row": idx + 1,
+                        "column": field.name,
+                        "value": json_safe_value(raw_value),
+                        "error": error,
+                    }
                 )
                 continue
             if parsed_value is not None:
@@ -130,6 +214,22 @@ def validate_rows(
         valid_rows.append(normalized)
 
     return valid_rows, errors
+
+
+def _normalize_raw_cell(raw_value: Any) -> str:
+    if raw_value is None:
+        return ""
+    try:
+        if pd.isna(raw_value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    if isinstance(raw_value, float) and math.isnan(raw_value):
+        return ""
+    value = str(raw_value).strip()
+    if value.lower() in {"nan", "none", "<na>"}:
+        return ""
+    return value
 
 
 def _parse_field_value(field: DatasetField, value: str) -> tuple[Any, str | None]:
@@ -145,6 +245,10 @@ def _parse_field_value(field: DatasetField, value: str) -> tuple[Any, str | None
         return normalized, None
 
     if field.kind == "int":
+        if field.name == "cuatrimestre":
+            parsed = _parse_cuatrimestre_label(value)
+            if parsed is not None:
+                return parsed, None
         try:
             if "." in value:
                 raise ValueError

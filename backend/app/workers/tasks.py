@@ -16,7 +16,11 @@ from app.models.evaluacion import EvaluacionAcademica, EvaluacionDocente
 from app.models.matricula import Matricula
 from app.models.titulacion import Titulacion
 from app.models.upload_job import UploadJob
-from app.services.csv_processor import parse_and_validate_smart
+from app.services.csv_processor import (
+    parse_and_validate_smart,
+    rows_from_dataframe,
+    sanitize_errors_for_json,
+)
 from app.workers.celery_app import celery_app
 
 # Engine sincrónico para Celery (Celery no juega bien con asyncio por defecto)
@@ -124,7 +128,7 @@ def process_csv_upload(self, job_id: str) -> dict:  # noqa: ARG001 (self requeri
             if dedup_keys:
                 df = df.drop_duplicates(subset=dedup_keys, keep="last")
 
-            rows = df.to_dict(orient="records")
+            rows = rows_from_dataframe(df)
             rows_total = int(len(rows) + _count_failed_rows(errors))
 
             inserted = _upsert_rows(session, job.dataset_type, rows)
@@ -132,7 +136,7 @@ def process_csv_upload(self, job_id: str) -> dict:  # noqa: ARG001 (self requeri
             job.rows_total = rows_total
             job.rows_processed = int(inserted)
             job.rows_failed = _count_failed_rows(errors)
-            job.errors = errors[:500] if errors else None
+            job.errors = sanitize_errors_for_json(errors[:500] if errors else None)
             job.status = "success" if not errors else "success_with_warnings"
             job.completed_at = datetime.now(UTC)
             session.commit()
