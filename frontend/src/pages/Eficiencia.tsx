@@ -25,7 +25,10 @@ export function Eficiencia() {
     queryFn: () => indicadoresApi.eficiencia({ ...filters, generaciones }),
   });
 
-  const cats = data?.generaciones.map((g) => `${g.generacion} · ${g.programa_educativo}`) ?? [];
+  const cats =
+    data?.generaciones.map((g) =>
+      g.programa_educativo === "Todos los programas" ? g.generacion : `${g.generacion} · ${g.programa_educativo}`
+    ) ?? [];
   const efTerminal = data?.generaciones.map((g) => Number(g.eficiencia_terminal.toFixed(2))) ?? [];
   const titulacion = data?.generaciones.map((g) => Number(g.indice_titulacion.toFixed(2))) ?? [];
 

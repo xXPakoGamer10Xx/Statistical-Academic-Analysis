@@ -161,32 +161,67 @@ async def calcular_eficiencia(
     generaciones: list[str] | None = None,
     programa_educativo: str | None = None,
 ) -> EficienciaResumen:
-    query = select(Titulacion).order_by(Titulacion.generacion.desc())
-    conditions = []
+    base_conditions = []
     if subsistema_id is not None:
-        conditions.append(Titulacion.subsistema_id == subsistema_id)
-    if generaciones:
-        conditions.append(Titulacion.generacion.in_(generaciones))
+        base_conditions.append(Titulacion.subsistema_id == subsistema_id)
     if programa_educativo:
-        conditions.append(Titulacion.programa_educativo == programa_educativo)
-    if conditions:
-        query = query.where(and_(*conditions))
+        base_conditions.append(Titulacion.programa_educativo == programa_educativo)
 
+    if not generaciones:
+        # Sin selección explícita del usuario: limitar a las 3 generaciones más
+        # recientes (la UI ya anuncia "comparar hasta 3 generaciones") en vez de
+        # traer el histórico completo, que satura la gráfica comparativa.
+        recientes_query = (
+            select(Titulacion.generacion).distinct().order_by(Titulacion.generacion.desc()).limit(3)
+        )
+        if base_conditions:
+            recientes_query = recientes_query.where(and_(*base_conditions))
+        generaciones = [r[0] for r in (await db.execute(recientes_query)).all()]
+
+    conditions = [*base_conditions, Titulacion.generacion.in_(generaciones)]
+    query = select(Titulacion).order_by(Titulacion.generacion.desc()).where(and_(*conditions))
     rows = (await db.execute(query)).scalars().all()
+
+    if programa_educativo:
+        puntos = [
+            EficienciaPunto(
+                generacion=r.generacion,
+                programa_educativo=r.programa_educativo,
+                eficiencia_terminal=calculate_percentage(
+                    r.concluyeron_estudios,
+                    r.matricula_generacional,
+                ),
+                indice_titulacion=calculate_percentage(r.titulados, r.concluyeron_estudios),
+                egresados=r.egresados,
+                titulados=r.titulados,
+            )
+            for r in rows
+        ]
+        return EficienciaResumen(generaciones=puntos)
+
+    # Sin programa específico: agrupar por generación sumando los conteos de
+    # todos los programas, para mostrar un solo punto por generación en vez de
+    # uno por cada combinación programa/generación.
+    agregados: dict[str, dict[str, int]] = {}
+    for r in rows:
+        acc = agregados.setdefault(
+            r.generacion, {"matricula": 0, "concluyeron": 0, "egresados": 0, "titulados": 0}
+        )
+        acc["matricula"] += r.matricula_generacional
+        acc["concluyeron"] += r.concluyeron_estudios
+        acc["egresados"] += r.egresados
+        acc["titulados"] += r.titulados
 
     puntos = [
         EficienciaPunto(
-            generacion=r.generacion,
-            programa_educativo=r.programa_educativo,
-            eficiencia_terminal=calculate_percentage(
-                r.concluyeron_estudios,
-                r.matricula_generacional,
-            ),
-            indice_titulacion=calculate_percentage(r.titulados, r.concluyeron_estudios),
-            egresados=r.egresados,
-            titulados=r.titulados,
+            generacion=generacion,
+            programa_educativo="Todos los programas",
+            eficiencia_terminal=calculate_percentage(acc["concluyeron"], acc["matricula"]),
+            indice_titulacion=calculate_percentage(acc["titulados"], acc["concluyeron"]),
+            egresados=acc["egresados"],
+            titulados=acc["titulados"],
         )
-        for r in rows
+        for generacion, acc in sorted(agregados.items(), reverse=True)
     ]
     return EficienciaResumen(generaciones=puntos)
 
