@@ -50,7 +50,7 @@ export function Eficiencia() {
         </div>
       </div>
 
-      <FilterBar scope="eficiencia" showCuatrimestre={false} />
+      <FilterBar scope="eficiencia" showCiclo={false} showCuatrimestre={false} />
 
       <Card>
         <CardHeader>
