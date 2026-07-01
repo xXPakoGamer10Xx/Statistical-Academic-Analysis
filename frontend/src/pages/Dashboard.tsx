@@ -67,11 +67,19 @@ export function Dashboard() {
     queryFn: () => indicadoresApi.matricula(filters),
   });
 
+  // La tendencia histórica debe abarcar todos los ciclos, no solo el ciclo
+  // seleccionado para las tarjetas KPI, así que se omite ciclo_escolar aquí.
+  const { data: trend } = useQuery({
+    queryKey: ["matricula-trend", filters.subsistema_id, filters.cuatrimestre, filters.programa_educativo],
+    queryFn: () =>
+      indicadoresApi.matricula({ ...filters, ciclo_escolar: undefined }),
+  });
+
   const chartData = useMemo(() => {
-    if (!matricula?.series) return { categories: [], series: [] };
+    if (!trend?.series) return { categories: [], series: [] };
 
     // Group by cycle to avoid duplicates if multiple terms/programs exist
-    const aggregated = matricula.series.reduce((acc, curr) => {
+    const aggregated = trend.series.reduce((acc, curr) => {
       if (!acc[curr.ciclo_escolar]) {
         acc[curr.ciclo_escolar] = { actual: 0, nuevo: 0, hombres: 0, mujeres: 0 };
       }
@@ -107,7 +115,7 @@ export function Dashboard() {
     }
 
     return { categories, series: [{ name, data, color }] };
-  }, [matricula, selectedMetric]);
+  }, [trend, selectedMetric]);
 
   return (
     <div className="space-y-8 lg:space-y-12">
