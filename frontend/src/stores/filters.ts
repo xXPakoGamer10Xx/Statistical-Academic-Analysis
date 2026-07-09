@@ -1,12 +1,11 @@
 import { create } from "zustand";
 import type { FilterState } from "@/types";
 
-const DEFAULT_CICLO = "2024-2025";
-
-/** Estado inicial de un scope nuevo (con ciclo por defecto para mostrar datos al entrar). */
+/** Estado inicial de un scope nuevo. El ciclo por defecto lo preselecciona
+ * FilterBar (el más reciente del catálogo de ciclos generacionales). */
 const initialState = (): FilterState => ({
   subsistema_id: undefined,
-  ciclo_escolar: DEFAULT_CICLO,
+  ciclo_escolar: undefined,
   cuatrimestre: undefined,
   programa_educativo: undefined,
 });

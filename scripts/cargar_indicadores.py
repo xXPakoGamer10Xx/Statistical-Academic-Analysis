@@ -483,7 +483,8 @@ def _extract_eval_doc_sheet(ws: Any, ciclo: str) -> list[dict]:
         if not _is_docente_name(nombre):
             continue
         nombre = str(nombre).strip()
-        docente_id = _normalize_id(nombre)
+        # Clave interna solo para deduplicar (no se envia a la BD/CSV final).
+        dedupe_key = _normalize_id(nombre)
 
         if e_col is not None and e_col < len(row):
             est = _safe_float(row[e_col])
@@ -491,11 +492,12 @@ def _extract_eval_doc_sheet(ws: Any, ciclo: str) -> list[dict]:
                 rows.append({
                     "subsistema_id": _sid(),
                     "ciclo_escolar": ciclo,
-                    "docente_id": docente_id,
+                    "puesto": DEFAULT_PUESTO_HISTORICO,
                     "docente_nombre": nombre,
                     "programa_educativo": "GENERAL",
                     "evaluador_tipo": "alumno",
                     "puntaje": est,
+                    "_dedupe_key": dedupe_key,
                 })
         if r_col is not None and r_col < len(row):
             rpe = _safe_float(row[r_col])
@@ -503,11 +505,12 @@ def _extract_eval_doc_sheet(ws: Any, ciclo: str) -> list[dict]:
                 rows.append({
                     "subsistema_id": _sid(),
                     "ciclo_escolar": ciclo,
-                    "docente_id": docente_id,
+                    "puesto": DEFAULT_PUESTO_HISTORICO,
                     "docente_nombre": nombre,
                     "programa_educativo": "GENERAL",
                     "evaluador_tipo": "directivo",
                     "puntaje": rpe,
+                    "_dedupe_key": dedupe_key,
                 })
     return rows
 
@@ -552,18 +555,20 @@ def _extract_eval_doc_dual_2020(ws: Any) -> list[dict]:
             if not _is_docente_name(nombre):
                 continue
             nombre = str(nombre).strip()
-            docente_id = _normalize_id(nombre)
+            # Clave interna solo para deduplicar (no se envia a la BD/CSV final).
+            dedupe_key = _normalize_id(nombre)
             if "estudiante" in block:
                 est = _safe_float(row[block["estudiante"]] if block["estudiante"] < len(row) else None)
                 if est is not None:
                     rows.append({
                         "subsistema_id": _sid(),
                         "ciclo_escolar": ciclo,
-                        "docente_id": docente_id,
+                        "puesto": DEFAULT_PUESTO_HISTORICO,
                         "docente_nombre": nombre,
                         "programa_educativo": "GENERAL",
                         "evaluador_tipo": "alumno",
                         "puntaje": est,
+                        "_dedupe_key": dedupe_key,
                     })
             if "rpe" in block:
                 rpe = _safe_float(row[block["rpe"]] if block["rpe"] < len(row) else None)
@@ -571,11 +576,12 @@ def _extract_eval_doc_dual_2020(ws: Any) -> list[dict]:
                     rows.append({
                         "subsistema_id": _sid(),
                         "ciclo_escolar": ciclo,
-                        "docente_id": docente_id,
+                        "puesto": DEFAULT_PUESTO_HISTORICO,
                         "docente_nombre": nombre,
                         "programa_educativo": "GENERAL",
                         "evaluador_tipo": "directivo",
                         "puntaje": rpe,
+                        "_dedupe_key": dedupe_key,
                     })
     return rows
 
@@ -591,7 +597,10 @@ def extract_evaluacion_docente(wb: openpyxl.Workbook) -> list[dict]:
             continue
         rows.extend(_extract_eval_doc_sheet(wb[sheet_name], ciclo))
 
-    return _dedup_rows(rows, ["subsistema_id", "ciclo_escolar", "docente_id", "evaluador_tipo"])
+    rows = _dedup_rows(rows, ["subsistema_id", "ciclo_escolar", "_dedupe_key", "evaluador_tipo"])
+    for row in rows:
+        row.pop("_dedupe_key", None)
+    return rows
 
 
 # ── 4. TITULACIÓN ─────────────────────────────────────────────────────────────
@@ -682,9 +691,12 @@ TITULACION_CSV_COLS = [
     "concluyeron_estudios", "egresados", "titulados", "ingresados_ns",
 ]
 EVAL_DOC_CSV_COLS = [
-    "ciclo_escolar", "docente_id", "docente_nombre", "programa_educativo",
+    "ciclo_escolar", "puesto", "docente_nombre", "programa_educativo",
     "evaluador_tipo", "puntaje",
 ]
+# Las hojas historicas no registran el puesto (P.A./P.C.) del docente; se marca
+# "P.A." por defecto ya que la mayoria del personal evaluado es Profesor de Asignatura.
+DEFAULT_PUESTO_HISTORICO = "P.A."
 
 
 def export_csv(

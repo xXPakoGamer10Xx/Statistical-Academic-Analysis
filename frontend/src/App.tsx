@@ -10,6 +10,7 @@ import { Login } from "@/pages/Login";
 import { Matricula } from "@/pages/Matricula";
 import { Rendimiento } from "@/pages/Rendimiento";
 import { AuditLog } from "@/pages/admin/AuditLog";
+import { Ciclos } from "@/pages/admin/Ciclos";
 import { Usuarios } from "@/pages/admin/Usuarios";
 
 export function App() {
@@ -32,9 +33,10 @@ export function App() {
           <Route element={<ProtectedRoute allowedRoles={["admin_escolar", "admin_general"]} />}>
             <Route path="admin/usuarios" element={<Usuarios />} />
           </Route>
-          {/* Solo admin general ve la bitácora */}
+          {/* Solo admin general ve la bitácora y gestiona el catálogo de ciclos */}
           <Route element={<ProtectedRoute allowedRoles={["admin_general"]} />}>
             <Route path="admin/auditoria" element={<AuditLog />} />
+            <Route path="admin/ciclos" element={<Ciclos />} />
           </Route>
         </Route>
       </Route>

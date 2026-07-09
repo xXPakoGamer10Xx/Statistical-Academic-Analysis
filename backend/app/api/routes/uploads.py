@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import SchoolAdminUser, DbDep
 from app.services.audit import log_action
@@ -34,7 +35,14 @@ from app.services.upload_diff import (
     get_compare_keys,
     load_baseline_rows,
 )
-from app.workers.tasks import DEDUP_KEYS, MODEL_BY_TYPE, process_csv_upload
+from app.services.upload_validations import (
+    build_mujeres_matriculadas_stmt,
+    build_valid_ciclos_stmt,
+    check_ciclo_catalog,
+    check_madres_solteras,
+    mujeres_keys_from_rows,
+)
+from app.workers.tasks import CATEGORIA_BY_DATASET, DEDUP_KEYS, MODEL_BY_TYPE, process_csv_upload
 
 router = APIRouter()
 
@@ -278,6 +286,32 @@ async def upload_csv(
     return job
 
 
+async def _apply_db_validations(
+    db: AsyncSession, dataset_type: str, rows: list[dict]
+) -> tuple[list[dict], list[dict]]:
+    """Validaciones que requieren BD (catalogo de ciclos, consistencia de becas). Ver upload_validations.py."""
+    all_errors: list[dict] = []
+
+    valid_ciclos_stmt = build_valid_ciclos_stmt(dataset_type)
+    if valid_ciclos_stmt is not None:
+        result = await db.execute(valid_ciclos_stmt)
+        valid_ciclos = {v for (v,) in result.all()}
+        rows, ciclo_errors = check_ciclo_catalog(rows, dataset_type, valid_ciclos)
+        all_errors.extend(ciclo_errors)
+
+    if dataset_type == "becas":
+        mujeres_by_key: dict[tuple, int] = {}
+        for subsistema_id, ciclo_escolar, programa_educativo in mujeres_keys_from_rows(rows):
+            stmt = build_mujeres_matriculadas_stmt(subsistema_id, ciclo_escolar, programa_educativo)
+            mujeres = (await db.execute(stmt)).scalar()
+            if mujeres is not None:
+                mujeres_by_key[(subsistema_id, ciclo_escolar, programa_educativo)] = mujeres
+        rows, madres_errors = check_madres_solteras(rows, mujeres_by_key)
+        all_errors.extend(madres_errors)
+
+    return rows, all_errors
+
+
 def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
     """Construye el INSERT ... ON CONFLICT DO UPDATE (mismo criterio que la carga de archivos)."""
     model = MODEL_BY_TYPE[dataset_type]
@@ -303,7 +337,7 @@ def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
             constraint="uq_beca",
             set_={"cantidad": stmt.excluded["cantidad"]},
         )
-    elif dataset_type == "caracterizacion":
+    elif dataset_type in ("discapacidad", "etnia"):
         stmt = stmt.on_conflict_do_update(
             constraint="uq_caracterizacion",
             set_={"cantidad": stmt.excluded["cantidad"]},
@@ -329,20 +363,31 @@ async def manual_upload(payload: ManualUploadIn, admin: SchoolAdminUser, db: DbD
         )
 
     # Deduplicar por las mismas llaves que la carga de archivos
+    categoria = CATEGORIA_BY_DATASET.get(payload.dataset_type)
     dedup_keys = DEDUP_KEYS.get(payload.dataset_type)
     if dedup_keys:
         seen: dict[tuple, dict] = {}
         for row in valid_rows:
             row["subsistema_id"] = payload.subsistema_id
+            if categoria:
+                row["categoria"] = categoria
             seen[tuple(row.get(k) for k in dedup_keys)] = row
         rows = list(seen.values())
     else:
         for row in valid_rows:
             row["subsistema_id"] = payload.subsistema_id
+            if categoria:
+                row["categoria"] = categoria
         rows = valid_rows
 
-    result = await db.execute(_build_upsert_stmt(payload.dataset_type, rows))
-    processed = result.rowcount or len(rows)
+    rows, db_errors = await _apply_db_validations(db, payload.dataset_type, rows)
+    errors.extend(db_errors)
+
+    if rows:
+        result = await db.execute(_build_upsert_stmt(payload.dataset_type, rows))
+        processed = result.rowcount or len(rows)
+    else:
+        processed = 0
 
     await log_action(
         db,

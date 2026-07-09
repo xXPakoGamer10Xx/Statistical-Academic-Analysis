@@ -97,12 +97,13 @@ export function Caracterizacion() {
         </div>
       ) : (
         <div id="charts-caracterizacion" className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:gap-6">
-            <KpiCard label="Total caracterizados" value={data?.total ?? 0} variant="blue" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
             <KpiCard label="Becados" value={totalDe("beca")} variant="green" />
             <KpiCard label="Con discapacidad" value={totalDe("discapacidad")} variant="amber" />
             <KpiCard label="Pertenecen a una etnia" value={totalDe("etnia")} variant="blue" />
           </div>
+          {/* Los 3 totales son independientes: un mismo alumno puede tener etnia Y
+              discapacidad reportadas, sumarlos duplicaria el conteo de personas. */}
 
           {categorias.length === 0 ? (
             <Card>

@@ -7,7 +7,7 @@ def calculate_matricula_actual(
     return total - bajas_reprobacion - bajas_desercion + nuevo_ingreso
 
 
-def calculate_percentage(numerator: float | int, denominator: float | int) -> float:
+def calculate_percentage(numerator: float | int | None, denominator: float | int | None) -> float:
     if not denominator:
         return 0.0
-    return float(numerator) * 100 / float(denominator)
+    return float(numerator or 0) * 100 / float(denominator)

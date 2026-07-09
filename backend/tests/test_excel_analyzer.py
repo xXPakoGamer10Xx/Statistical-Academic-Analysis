@@ -3,18 +3,22 @@ import openpyxl
 from app.services.excel_analyzer import analyze_csv_file, analyze_excel_file
 
 
-def test_csv_caracterizacion_maps_programa_educativo(tmp_path):
-    csv_path = tmp_path / "caracterizacion.csv"
+def test_csv_discapacidad_maps_programa_educativo(tmp_path):
+    csv_path = tmp_path / "discapacidad.csv"
     csv_path.write_text(
-        "ciclo_escolar,programa_educativo,categoria,tipo,cantidad\n"
-        "2024-2025,Mecatronica,discapacidad,Motriz,10\n",
+        "ciclo_escolar,programa_educativo,tipo,cantidad\n"
+        "2024-2025,Mecatronica,Motriz,10\n",
         encoding="utf-8",
     )
 
     sheet = analyze_csv_file(str(csv_path)).sheets[0]
     mapping = {item.excel_column: item.system_field for item in sheet.column_mapping}
 
-    assert sheet.suggested_dataset_type == "caracterizacion"
+    # becas/discapacidad/etnia comparten exactamente las mismas columnas requeridas
+    # (ciclo_escolar, programa_educativo, tipo, cantidad), asi que el detector automatico
+    # no puede distinguirlas solo por nombre de columna -- cualquiera de las tres es un
+    # acierto valido; el usuario confirma el tipo antes de subir.
+    assert sheet.suggested_dataset_type in {"becas", "discapacidad", "etnia"}
     assert mapping["programa_educativo"] == "programa_educativo"
     assert sheet.sample_rows[0][sheet.header_column_indices[1]] == "Mecatronica"
 

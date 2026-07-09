@@ -104,7 +104,6 @@
 {% if caracterizacion %}
 <h2>Caracterización del alumnado</h2>
 <div class="summary">
-  <div class="card"><div class="label">Total caracterizados</div><div class="value">{{ caracterizacion.total }}</div></div>
   {% for cat in caracterizacion.categorias %}
     {% if cat.categoria == "beca" %}
       <div class="card"><div class="label">Becados</div><div class="value">{{ cat.total }}</div></div>

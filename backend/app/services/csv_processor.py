@@ -239,10 +239,15 @@ def _parse_field_value(field: DatasetField, value: str) -> tuple[Any, str | None
         return None, None
 
     if field.kind == "string":
-        normalized = value.lower() if field.allowed_values else value
-        if field.allowed_values and normalized not in field.allowed_values:
-            return None, f"debe ser uno de: {', '.join(field.allowed_values)}"
-        return normalized, None
+        if field.allowed_values:
+            # Comparacion case-insensitive, pero se conserva la forma canonica definida
+            # en allowed_values (ej. "P.A." en vez de forzar minusculas).
+            canonical_by_lower = {av.lower(): av for av in field.allowed_values}
+            canonical = canonical_by_lower.get(value.lower())
+            if canonical is None:
+                return None, f"debe ser uno de: {', '.join(field.allowed_values)}"
+            return canonical, None
+        return value, None
 
     if field.kind == "int":
         if field.name == "cuatrimestre":
@@ -252,14 +257,37 @@ def _parse_field_value(field: DatasetField, value: str) -> tuple[Any, str | None
         try:
             if "." in value:
                 raise ValueError
-            return int(value), None
+            parsed_int = int(value)
         except ValueError:
             return None, "no es entero"
+        range_error = _check_range(field, parsed_int)
+        if range_error:
+            return None, range_error
+        return parsed_int, None
 
     if field.kind == "float":
         try:
-            return float(value), None
+            parsed_float = float(value)
         except ValueError:
             return None, "no es decimal"
+        if not math.isfinite(parsed_float):
+            return None, "no es un número válido"
+        range_error = _check_range(field, parsed_float)
+        if range_error:
+            return None, range_error
+        return parsed_float, None
 
     return None, "tipo de campo no soportado"
+
+
+def _check_range(field: DatasetField, parsed: float) -> str | None:
+    """Valida un numero ya parseado contra min_value/max_value del campo.
+
+    Sin min_value explicito, el piso implicito es 0 (ningun campo admite negativos).
+    """
+    min_value = 0 if field.min_value is None else field.min_value
+    if parsed < min_value:
+        return "no puede ser negativo" if field.min_value is None else f"no puede ser menor a {field.min_value}"
+    if field.max_value is not None and parsed > field.max_value:
+        return f"no puede ser mayor a {field.max_value}"
+    return None

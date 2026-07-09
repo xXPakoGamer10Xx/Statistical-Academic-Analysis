@@ -29,6 +29,8 @@ async def list_dataset_formats() -> list[DatasetDefinitionOut]:
                     description=field.description,
                     allowed_values=list(field.allowed_values) if field.allowed_values else None,
                     suggested_values=list(field.suggested_values) if field.suggested_values else None,
+                    max_value=field.max_value,
+                    min_value=field.min_value,
                 )
                 for field in definition.fields
             ],

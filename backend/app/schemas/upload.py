@@ -11,7 +11,8 @@ DatasetType = Literal[
     "titulacion",
     "evaluacion_docente",
     "becas",
-    "caracterizacion",
+    "discapacidad",
+    "etnia",
 ]
 
 
@@ -81,6 +82,8 @@ class DatasetFieldOut(BaseModel):
     description: str | None = None
     allowed_values: list[str] | None = None
     suggested_values: list[str] | None = None
+    max_value: float | None = None
+    min_value: float | None = None
 
 
 # ---------------------------------------------------------------------------

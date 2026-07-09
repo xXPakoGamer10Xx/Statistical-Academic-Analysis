@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { Plus, Trash2, Save, ClipboardList } from "lucide-react";
-import { uploadsApi } from "@/api/endpoints";
+import { ciclosApi, indicadoresApi, suggestionsApi, uploadsApi } from "@/api/endpoints";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -19,10 +19,75 @@ interface Props {
 
 type Row = Record<string, string>;
 
+const MADRES_SOLTERAS = "madres solteras";
+
 function emptyRow(def: DatasetDefinition | undefined): Row {
   const r: Row = {};
   def?.fields.forEach((f) => (r[f.name] = ""));
   return r;
+}
+
+// "evaluacion_docente" usa un layout de fila propio (ver componente): un docente,
+// dos puntajes (alumnos/directivos) y un promedio calculado, en vez del campo
+// generico "evaluador_tipo" + "puntaje" (que obligaria a 2 filas por docente).
+function emptyDocenteRow(): Row {
+  return {
+    ciclo_escolar: "",
+    puesto: "",
+    docente_nombre: "",
+    programa_educativo: "",
+    puntaje_alumnos: "",
+    puntaje_directivos: "",
+  };
+}
+
+/**
+ * Filtra en tiempo real lo que el usuario escribe en un campo numerico: quita
+ * signos/letras (ningun campo del sistema admite negativos) y limita al maximo
+ * mientras se escribe. El atributo HTML min/max por si solo NO bloquea el teclado
+ * (el navegador solo lo marca como invalido), asi que esto es lo que realmente
+ * impide capturar "-1" o valores fuera de rango.
+ */
+function sanitizeNumericInput(raw: string, max?: number | null): string {
+  let cleaned = raw.replace(/[^0-9.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+  if (firstDot !== -1) {
+    cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
+  }
+  if (max != null && cleaned !== "" && cleaned !== ".") {
+    const num = Number(cleaned);
+    if (!Number.isNaN(num) && num > max) cleaned = String(max);
+  }
+  return cleaned;
+}
+
+function promedioDocente(row: Row): string {
+  const a = row.puntaje_alumnos?.trim() ? Number(row.puntaje_alumnos) : null;
+  const d = row.puntaje_directivos?.trim() ? Number(row.puntaje_directivos) : null;
+  const vals = [a, d].filter((v): v is number => v !== null && !Number.isNaN(v));
+  if (vals.length === 0) return "—";
+  return (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2);
+}
+
+/** 1 fila de captura -> hasta 2 filas de API (una por evaluador_tipo, solo si se capturo). */
+function docenteRowsToApi(rows: Row[]): Row[] {
+  const out: Row[] = [];
+  for (const r of rows) {
+    if (!Object.values(r).some((v) => v.trim() !== "")) continue;
+    const base = {
+      ciclo_escolar: r.ciclo_escolar,
+      puesto: r.puesto,
+      docente_nombre: r.docente_nombre,
+      programa_educativo: r.programa_educativo,
+    };
+    if (r.puntaje_alumnos?.trim()) {
+      out.push({ ...base, evaluador_tipo: "alumno", puntaje: r.puntaje_alumnos });
+    }
+    if (r.puntaje_directivos?.trim()) {
+      out.push({ ...base, evaluador_tipo: "directivo", puntaje: r.puntaje_directivos });
+    }
+  }
+  return out;
 }
 
 export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGeneral, onSuccess }: Props) {
@@ -30,7 +95,48 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
   const [subsistemaId, setSubsistemaId] = useState<number | "">(fixedSubsistemaId ?? "");
 
   const def = useMemo(() => formats?.find((f) => f.key === datasetType), [formats, datasetType]);
+  const isDocente = datasetType === "evaluacion_docente";
   const [rows, setRows] = useState<Row[]>([emptyRow(def)]);
+
+  const effectiveSubsistemaId = isAdminGeneral
+    ? (subsistemaId === "" ? undefined : Number(subsistemaId))
+    : (fixedSubsistemaId ?? undefined);
+
+  const hasCicloField = def?.fields.some((f) => f.name === "ciclo_escolar") ?? false;
+  const hasGeneracionField = def?.key === "titulacion";
+  const hasProgramaField = def?.fields.some((f) => f.name === "programa_educativo") ?? false;
+
+  // Catalogo de ciclos generacionales (ya existe, usado tambien en FilterBar/Eficiencia).
+  // Solo se ofrecen los ACTIVOS: no tiene sentido capturar contra un ciclo deshabilitado
+  // (el backend ya rechaza esas cargas).
+  const { data: ciclosCatalogo } = useQuery({
+    queryKey: ["ciclos", "ciclo"],
+    queryFn: () => ciclosApi.list({ tipo: "ciclo" }),
+    enabled: hasCicloField,
+  });
+  const ciclosActivos = useMemo(() => (ciclosCatalogo ?? []).filter((c) => c.activo), [ciclosCatalogo]);
+
+  const { data: generacionesCatalogo } = useQuery({
+    queryKey: ["ciclos", "generacion"],
+    queryFn: () => ciclosApi.list({ tipo: "generacion" }),
+    enabled: hasGeneracionField,
+  });
+  const generacionesActivas = useMemo(
+    () => (generacionesCatalogo ?? []).filter((c) => c.activo),
+    [generacionesCatalogo],
+  );
+
+  // Sugerencias (catalogo NO estricto) de valores ya existentes en BD.
+  const { data: programaSugerencias } = useQuery({
+    queryKey: ["suggestions", "programa_educativo", effectiveSubsistemaId],
+    queryFn: () => suggestionsApi.list("programa_educativo", effectiveSubsistemaId),
+    enabled: hasProgramaField && effectiveSubsistemaId !== undefined,
+  });
+  const { data: docenteSugerencias } = useQuery({
+    queryKey: ["suggestions", "docente_nombre", effectiveSubsistemaId],
+    queryFn: () => suggestionsApi.list("docente_nombre", effectiveSubsistemaId),
+    enabled: isDocente && effectiveSubsistemaId !== undefined,
+  });
 
   // Columna cuyos valores son las llaves del catalogo (ej. "categoria" → beca/discapacidad/etnia).
   const catalogDriver = useMemo(() => {
@@ -42,45 +148,120 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
     return driver?.name ?? null;
   }, [def]);
 
-  // Sugerencias para un campo en una fila: catalogo dependiente de la categoria o lista plana.
+  // Sugerencias para un campo en una fila: catalogo dependiente de la categoria,
+  // catalogo dinamico (programa/docente ya capturados), o lista plana estatica.
   const suggestionsFor = (field: DatasetField, row: Row): string[] | null => {
     if (def?.catalogos && catalogDriver && field.suggested_values) {
       const sel = row[catalogDriver];
       if (sel && def.catalogos[sel]) return def.catalogos[sel];
     }
+    if (field.name === "programa_educativo" && programaSugerencias?.length) return programaSugerencias;
+    if (field.name === "docente_nombre" && docenteSugerencias?.length) return docenteSugerencias;
     return field.suggested_values ?? null;
+  };
+
+  // --- Beca "Madres solteras": no debe exceder las mujeres matriculadas conocidas ---
+  // para esa combinacion (ciclo, programa). Capa de UX anticipada; el backend ya
+  // valida esto mismo al guardar (upload_validations.py::check_madres_solteras).
+  const madresSolterasKeys = useMemo(() => {
+    if (datasetType !== "becas") return [] as string[];
+    const keys = new Set<string>();
+    rows.forEach((r) => {
+      if (r.tipo?.trim().toLowerCase() === MADRES_SOLTERAS && r.ciclo_escolar && r.programa_educativo) {
+        keys.add(`${r.ciclo_escolar}|||${r.programa_educativo}`);
+      }
+    });
+    return [...keys];
+  }, [datasetType, rows]);
+
+  const mujeresQueries = useQueries({
+    queries: madresSolterasKeys.map((key) => {
+      const [ciclo_escolar, programa_educativo] = key.split("|||");
+      return {
+        queryKey: ["matricula-mujeres", effectiveSubsistemaId, ciclo_escolar, programa_educativo],
+        queryFn: () =>
+          indicadoresApi.matricula({ subsistema_id: effectiveSubsistemaId, ciclo_escolar, programa_educativo }),
+        enabled: effectiveSubsistemaId !== undefined,
+        staleTime: 60_000,
+      };
+    }),
+  });
+
+  const maxMujeresPorKey = useMemo(() => {
+    const map = new Map<string, number>();
+    madresSolterasKeys.forEach((key, i) => {
+      const data = mujeresQueries[i]?.data;
+      if (data && data.series.length > 0) {
+        map.set(key, Math.max(...data.series.map((p) => p.mujeres)));
+      }
+    });
+    return map;
+  }, [madresSolterasKeys, mujeresQueries]);
+
+  const madresSolterasError = (row: Row): string | null => {
+    if (datasetType !== "becas") return null;
+    if (row.tipo?.trim().toLowerCase() !== MADRES_SOLTERAS) return null;
+    if (!row.ciclo_escolar || !row.programa_educativo || !row.cantidad?.trim()) return null;
+    const maxMujeres = maxMujeresPorKey.get(`${row.ciclo_escolar}|||${row.programa_educativo}`);
+    if (maxMujeres === undefined) return null;
+    const cantidad = Number(row.cantidad);
+    if (Number.isFinite(cantidad) && cantidad > maxMujeres) {
+      return `Excede las ${maxMujeres} mujeres matriculadas en ese programa/ciclo.`;
+    }
+    return null;
   };
 
   // Al cambiar el tipo de dataset, reiniciar las filas con los campos correctos
   const changeDataset = (key: string) => {
     setDatasetType(key);
+    if (key === "evaluacion_docente") {
+      setRows([emptyDocenteRow()]);
+      return;
+    }
     const newDef = formats?.find((f) => f.key === key);
     setRows([emptyRow(newDef)]);
   };
 
   const setCell = (rowIdx: number, field: string, value: string) =>
-    setRows((rs) => rs.map((r, i) => (i === rowIdx ? { ...r, [field]: value } : r)));
+    setRows((rs) => rs.map((r, i) => {
+      if (i !== rowIdx) return r;
+      const updated = { ...r, [field]: value };
+      // "Madres solteras" solo aplica a mujeres: forzar el sexo al elegir ese tipo.
+      if (datasetType === "becas" && field === "tipo" && value.trim().toLowerCase() === MADRES_SOLTERAS) {
+        updated.sexo = "Mujer";
+      }
+      return updated;
+    }));
 
-  const addRow = () => setRows((rs) => [...rs, emptyRow(def)]);
+  const addRow = () => setRows((rs) => [...rs, isDocente ? emptyDocenteRow() : emptyRow(def)]);
   const removeRow = (idx: number) => setRows((rs) => (rs.length > 1 ? rs.filter((_, i) => i !== idx) : rs));
 
   const submit = useMutation({
     mutationFn: () => {
       const sid = isAdminGeneral ? Number(subsistemaId) : (fixedSubsistemaId ?? Number(subsistemaId));
-      // Enviar solo filas con al menos un valor
-      const filled = rows.filter((r) => Object.values(r).some((v) => v.trim() !== ""));
+      const filled = isDocente
+        ? docenteRowsToApi(rows)
+        : rows.filter((r) => Object.values(r).some((v) => v.trim() !== ""));
       return uploadsApi.uploadManual(sid, datasetType, filled);
     },
     onSuccess: (res) => {
       onSuccess();
-      if (res.rows_failed === 0) setRows([emptyRow(def)]);
+      if (res.rows_failed === 0) setRows([isDocente ? emptyDocenteRow() : emptyRow(def)]);
     },
   });
+
+  const hasMadresSolterasError = rows.some((r) => madresSolterasError(r) !== null);
 
   const canSubmit =
     !submit.isPending &&
     (isAdminGeneral ? subsistemaId !== "" : fixedSubsistemaId !== null) &&
-    rows.some((r) => Object.values(r).some((v) => v.trim() !== ""));
+    rows.some((r) => Object.values(r).some((v) => v.trim() !== "")) &&
+    !hasMadresSolterasError;
+
+  const puestoOptions = def?.fields.find((f) => f.name === "puesto")?.allowed_values ?? [];
+  const puntajeField = def?.fields.find((f) => f.name === "puntaje");
+  const puntajeMax = puntajeField?.max_value ?? undefined;
+  const puntajeMin = puntajeField?.min_value ?? 0;
 
   return (
     <Card>
@@ -119,62 +300,191 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {def?.fields.map((f) => (
-                  <th key={f.name} className="px-2 pb-2 font-bold whitespace-nowrap">
-                    {f.name}{f.required && <span className="text-red-400"> *</span>}
-                  </th>
-                ))}
-                <th className="px-2 pb-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, rowIdx) => (
-                <tr key={rowIdx} className="border-b border-slate-100 dark:border-slate-800/50">
-                  {def?.fields.map((f) => {
-                    const suggestions = suggestionsFor(f, row);
-                    const listId = `dl-${rowIdx}-${f.name}`;
+            {isDocente ? (
+              <>
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <th className="px-2 pb-2 font-bold whitespace-nowrap">Ciclo</th>
+                    <th className="px-2 pb-2 font-bold whitespace-nowrap">Puesto</th>
+                    <th className="px-2 pb-2 font-bold whitespace-nowrap">Docente</th>
+                    <th className="px-2 pb-2 font-bold whitespace-nowrap">Programa</th>
+                    <th className="px-2 pb-2 font-bold whitespace-nowrap">Puntaje alumnos</th>
+                    <th className="px-2 pb-2 font-bold whitespace-nowrap">Puntaje directivos</th>
+                    <th className="px-2 pb-2 font-bold whitespace-nowrap">Promedio</th>
+                    <th className="px-2 pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, rowIdx) => {
+                    const docenteListId = `dl-${rowIdx}-docente_nombre`;
+                    const programaListId = `dl-${rowIdx}-programa_educativo`;
                     return (
-                      <td key={f.name} className="px-1 py-1.5">
-                        {f.allowed_values && f.allowed_values.length > 0 ? (
-                          <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                      <tr key={rowIdx} className="border-b border-slate-100 dark:border-slate-800/50">
+                        <td className="px-1 py-1.5">
+                          <Select value={row.ciclo_escolar ?? ""} onChange={(e) => setCell(rowIdx, "ciclo_escolar", e.target.value)}>
                             <option value="">—</option>
-                            {f.allowed_values.map((v) => <option key={v} value={v}>{v}</option>)}
+                            {ciclosActivos.map((c) => <option key={c.id} value={c.valor}>{c.valor}</option>)}
                           </Select>
-                        ) : suggestions && suggestions.length > 0 ? (
-                          <>
-                            <Input
-                              list={listId}
-                              value={row[f.name] ?? ""}
-                              onChange={(e) => setCell(rowIdx, f.name, e.target.value)}
-                              placeholder="Elige o escribe…"
-                              className="min-w-[140px]"
-                            />
-                            <datalist id={listId}>
-                              {suggestions.map((v) => <option key={v} value={v} />)}
-                            </datalist>
-                          </>
-                        ) : (
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Select value={row.puesto ?? ""} onChange={(e) => setCell(rowIdx, "puesto", e.target.value)}>
+                            <option value="">—</option>
+                            {puestoOptions.map((v) => <option key={v} value={v}>{v}</option>)}
+                          </Select>
+                        </td>
+                        <td className="px-1 py-1.5">
                           <Input
-                            type={f.kind === "int" || f.kind === "float" ? "number" : "text"}
-                            step={f.kind === "float" ? "0.01" : undefined}
-                            value={row[f.name] ?? ""}
-                            onChange={(e) => setCell(rowIdx, f.name, e.target.value)}
-                            className="min-w-[120px]"
+                            list={docenteListId}
+                            value={row.docente_nombre ?? ""}
+                            onChange={(e) => setCell(rowIdx, "docente_nombre", e.target.value)}
+                            placeholder="Elige o escribe…"
+                            className="min-w-[160px]"
                           />
-                        )}
-                      </td>
+                          <datalist id={docenteListId}>
+                            {docenteSugerencias?.map((v) => <option key={v} value={v} />)}
+                          </datalist>
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Input
+                            list={programaListId}
+                            value={row.programa_educativo ?? ""}
+                            onChange={(e) => setCell(rowIdx, "programa_educativo", e.target.value)}
+                            placeholder="Elige o escribe…"
+                            className="min-w-[160px]"
+                          />
+                          <datalist id={programaListId}>
+                            {programaSugerencias?.map((v) => <option key={v} value={v} />)}
+                          </datalist>
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Input
+                            type="number"
+                            min={puntajeMin}
+                            max={puntajeMax}
+                            step="0.01"
+                            value={row.puntaje_alumnos ?? ""}
+                            onChange={(e) => setCell(rowIdx, "puntaje_alumnos", sanitizeNumericInput(e.target.value, puntajeMax))}
+                            className="min-w-[100px]"
+                          />
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Input
+                            type="number"
+                            min={puntajeMin}
+                            max={puntajeMax}
+                            step="0.01"
+                            value={row.puntaje_directivos ?? ""}
+                            onChange={(e) => setCell(rowIdx, "puntaje_directivos", sanitizeNumericInput(e.target.value, puntajeMax))}
+                            className="min-w-[100px]"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 text-center font-semibold text-slate-700 dark:text-slate-300">
+                          {promedioDocente(row)}
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeRow(rowIdx)}>
+                            <Trash2 className="h-4 w-4 text-slate-400" />
+                          </Button>
+                        </td>
+                      </tr>
                     );
                   })}
-                  <td className="px-1 py-1.5">
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeRow(rowIdx)}>
-                      <Trash2 className="h-4 w-4 text-slate-400" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+                </tbody>
+              </>
+            ) : (
+              <>
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {def?.fields.map((f) => (
+                      <th key={f.name} className="px-2 pb-2 font-bold whitespace-nowrap">
+                        {f.name}{f.required && <span className="text-red-400"> *</span>}
+                      </th>
+                    ))}
+                    <th className="px-2 pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, rowIdx) => (
+                    <tr key={rowIdx} className="border-b border-slate-100 dark:border-slate-800/50">
+                      {def?.fields.map((f) => {
+                        const suggestions = suggestionsFor(f, row);
+                        const listId = `dl-${rowIdx}-${f.name}`;
+                        const cellError = f.name === "cantidad" && datasetType === "becas" ? madresSolterasError(row) : null;
+                        return (
+                          <td key={f.name} className="px-1 py-1.5 align-top">
+                            {f.name === "ciclo_escolar" ? (
+                              <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                                <option value="">—</option>
+                                {ciclosActivos.map((c) => <option key={c.id} value={c.valor}>{c.valor}</option>)}
+                              </Select>
+                            ) : f.name === "generacion" ? (
+                              <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                                <option value="">—</option>
+                                {generacionesActivas.map((c) => <option key={c.id} value={c.valor}>{c.valor}</option>)}
+                              </Select>
+                            ) : f.name === "cuatrimestre" ? (
+                              <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                                <option value="">—</option>
+                                {[1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
+                              </Select>
+                            ) : f.name === "sexo" && datasetType === "becas" && row.tipo?.trim().toLowerCase() === MADRES_SOLTERAS ? (
+                              // "Madres solteras" solo aplica a mujeres: sin opcion de eleccion.
+                              <Select value="Mujer" disabled onChange={() => {}}>
+                                <option value="Mujer">Mujer</option>
+                              </Select>
+                            ) : f.allowed_values && f.allowed_values.length > 0 ? (
+                              <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                                <option value="">—</option>
+                                {f.allowed_values.map((v) => <option key={v} value={v}>{v}</option>)}
+                              </Select>
+                            ) : suggestions && suggestions.length > 0 ? (
+                              <>
+                                <Input
+                                  list={listId}
+                                  value={row[f.name] ?? ""}
+                                  onChange={(e) => setCell(rowIdx, f.name, e.target.value)}
+                                  placeholder="Elige o escribe…"
+                                  className="min-w-[140px]"
+                                />
+                                <datalist id={listId}>
+                                  {suggestions.map((v) => <option key={v} value={v} />)}
+                                </datalist>
+                              </>
+                            ) : (
+                              <Input
+                                type={f.kind === "int" || f.kind === "float" ? "number" : "text"}
+                                step={f.kind === "float" ? "0.01" : undefined}
+                                min={f.kind === "int" || f.kind === "float" ? f.min_value ?? 0 : undefined}
+                                max={f.kind === "int" || f.kind === "float" ? f.max_value ?? undefined : undefined}
+                                value={row[f.name] ?? ""}
+                                onChange={(e) =>
+                                  setCell(
+                                    rowIdx,
+                                    f.name,
+                                    f.kind === "int" || f.kind === "float"
+                                      ? sanitizeNumericInput(e.target.value, f.max_value)
+                                      : e.target.value,
+                                  )
+                                }
+                                className="min-w-[120px]"
+                              />
+                            )}
+                            {cellError && (
+                              <p className="mt-1 text-[11px] font-medium text-red-500">{cellError}</p>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="px-1 py-1.5">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeRow(rowIdx)}>
+                          <Trash2 className="h-4 w-4 text-slate-400" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </>
+            )}
           </table>
         </div>
 

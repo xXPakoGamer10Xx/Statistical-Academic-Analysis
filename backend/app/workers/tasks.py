@@ -21,6 +21,13 @@ from app.services.csv_processor import (
     rows_from_dataframe,
     sanitize_errors_for_json,
 )
+from app.services.upload_validations import (
+    build_mujeres_matriculadas_stmt,
+    build_valid_ciclos_stmt,
+    check_ciclo_catalog,
+    check_madres_solteras,
+    mujeres_keys_from_rows,
+)
 from app.workers.celery_app import celery_app
 
 # Engine sincrónico para Celery (Celery no juega bien con asyncio por defecto)
@@ -33,20 +40,23 @@ MODEL_BY_TYPE = {
     "titulacion": Titulacion,
     "evaluacion_docente": EvaluacionDocente,
     "becas": Beca,
-    "caracterizacion": Caracterizacion,
+    "discapacidad": Caracterizacion,
+    "etnia": Caracterizacion,
+}
+
+# "discapacidad"/"etnia" son datasets de carga independientes en la UI, pero comparten la
+# tabla `caracterizacion` (columna `categoria`); el dataset type determina su valor.
+CATEGORIA_BY_DATASET: dict[str, str] = {
+    "discapacidad": "discapacidad",
+    "etnia": "etnia",
 }
 
 DEDUP_KEYS: dict[str, tuple[str, ...]] = {
     "matricula": ("subsistema_id", "ciclo_escolar", "cuatrimestre", "programa_educativo"),
     "titulacion": ("subsistema_id", "generacion", "programa_educativo"),
-    "becas": ("subsistema_id", "ciclo_escolar", "programa_educativo", "tipo"),
-    "caracterizacion": (
-        "subsistema_id",
-        "ciclo_escolar",
-        "programa_educativo",
-        "categoria",
-        "tipo",
-    ),
+    "becas": ("subsistema_id", "ciclo_escolar", "programa_educativo", "tipo", "sexo"),
+    "discapacidad": ("subsistema_id", "ciclo_escolar", "programa_educativo", "categoria", "tipo", "sexo"),
+    "etnia": ("subsistema_id", "ciclo_escolar", "programa_educativo", "categoria", "tipo", "sexo"),
 }
 
 
@@ -88,7 +98,7 @@ def _upsert_rows(session: Session, dataset_type: str, rows: list[dict]) -> int:
             constraint="uq_beca",
             set_={"cantidad": stmt.excluded["cantidad"]},
         )
-    elif dataset_type == "caracterizacion":
+    elif dataset_type in ("discapacidad", "etnia"):
         stmt = stmt.on_conflict_do_update(
             constraint="uq_caracterizacion",
             set_={"cantidad": stmt.excluded["cantidad"]},
@@ -100,6 +110,29 @@ def _upsert_rows(session: Session, dataset_type: str, rows: list[dict]) -> int:
 
 def _count_failed_rows(errors: list[dict]) -> int:
     return len({error["row"] for error in errors})
+
+
+def _apply_db_validations(session: Session, dataset_type: str, rows: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Validaciones que requieren BD (catalogo de ciclos, consistencia de becas). Ver upload_validations.py."""
+    all_errors: list[dict] = []
+
+    valid_ciclos_stmt = build_valid_ciclos_stmt(dataset_type)
+    if valid_ciclos_stmt is not None:
+        valid_ciclos = {v for (v,) in session.execute(valid_ciclos_stmt).all()}
+        rows, ciclo_errors = check_ciclo_catalog(rows, dataset_type, valid_ciclos)
+        all_errors.extend(ciclo_errors)
+
+    if dataset_type == "becas":
+        mujeres_by_key: dict[tuple, int] = {}
+        for subsistema_id, ciclo_escolar, programa_educativo in mujeres_keys_from_rows(rows):
+            stmt = build_mujeres_matriculadas_stmt(subsistema_id, ciclo_escolar, programa_educativo)
+            mujeres = session.execute(stmt).scalar()
+            if mujeres is not None:
+                mujeres_by_key[(subsistema_id, ciclo_escolar, programa_educativo)] = mujeres
+        rows, madres_errors = check_madres_solteras(rows, mujeres_by_key)
+        all_errors.extend(madres_errors)
+
+    return rows, all_errors
 
 
 @celery_app.task(bind=True, name="process_csv_upload", max_retries=2)
@@ -123,12 +156,16 @@ def process_csv_upload(self, job_id: str) -> dict:  # noqa: ARG001 (self requeri
                 column_mapping=cfg.get("column_mapping"),
             )
             df["subsistema_id"] = job.subsistema_id
+            if job.dataset_type in CATEGORIA_BY_DATASET:
+                df["categoria"] = CATEGORIA_BY_DATASET[job.dataset_type]
 
             dedup_keys = list(DEDUP_KEYS.get(job.dataset_type, []))
             if dedup_keys:
                 df = df.drop_duplicates(subset=dedup_keys, keep="last")
 
             rows = rows_from_dataframe(df)
+            rows, db_errors = _apply_db_validations(session, job.dataset_type, rows)
+            errors.extend(db_errors)
             rows_total = int(len(rows) + _count_failed_rows(errors))
 
             inserted = _upsert_rows(session, job.dataset_type, rows)

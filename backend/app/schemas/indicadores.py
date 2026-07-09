@@ -45,7 +45,7 @@ class EficienciaResumen(BaseModel):
 
 class EvaluacionDocentePunto(BaseModel):
     ciclo_escolar: str
-    docente_id: str
+    puesto: str
     docente_nombre: str
     programa_educativo: str
     promedio_alumnos: float | None
@@ -76,5 +76,4 @@ class CaracterizacionCategoria(BaseModel):
 
 
 class CaracterizacionResumen(BaseModel):
-    total: int
     categorias: list[CaracterizacionCategoria]

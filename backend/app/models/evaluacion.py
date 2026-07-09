@@ -31,7 +31,8 @@ class EvaluacionDocente(Base):
         ForeignKey("subsistemas.id", ondelete="CASCADE"), nullable=False, index=True
     )
     ciclo_escolar: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
-    docente_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    # Puesto del docente: P.A. (Profesor de Asignatura) o P.C. (Profesor de Carrera).
+    puesto: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     docente_nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     programa_educativo: Mapped[str] = mapped_column(String(150), nullable=False)
     evaluador_tipo: Mapped[str] = mapped_column(String(20), nullable=False)

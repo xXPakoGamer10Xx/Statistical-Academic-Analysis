@@ -16,3 +16,14 @@ body {
 input::-webkit-calendar-picker-indicator {
   display: none !important;
 }
+
+/* Oculta las flechas (stepper) de los inputs numéricos: son solo cosméticas y
+   no impiden escribir valores fuera de rango, así que estorban más de lo que ayudan. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}

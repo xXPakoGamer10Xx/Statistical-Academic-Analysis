@@ -21,6 +21,7 @@ class Caracterizacion(Base):
             "programa_educativo",
             "categoria",
             "tipo",
+            "sexo",
             name="uq_caracterizacion",
         ),
     )
@@ -35,6 +36,8 @@ class Caracterizacion(Base):
     categoria: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     # Tipo especifico dentro de la categoria (ej. "Manutencion", "Motriz", "Nahuatl")
     tipo: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Sexo del alumnado (Hombre/Mujer). Nullable: filas historicas no lo tienen.
+    sexo: Mapped[str | None] = mapped_column(String(10), nullable=True)
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     uploaded_at: Mapped[datetime] = mapped_column(

@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   ClipboardList,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
@@ -25,14 +26,15 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const NAV_ITEMS = [
+  { to: "/cargas", label: "Cargas", icon: Upload, allowedRoles: ["admin_escolar", "admin_general"] },
   { to: "/", label: "Resumen General", icon: BarChart3, allowedRoles: null },
-  { to: "/matricula", label: "Matrícula", icon: Users, allowedRoles: null },
+  { to: "/matricula", label: "Estadística de matrícula", icon: Users, allowedRoles: null },
   { to: "/caracterizacion", label: "Caracterización", icon: HeartHandshake, allowedRoles: null },
   { to: "/rendimiento", label: "Rendimiento", icon: BookOpen, allowedRoles: null },
   { to: "/eficiencia", label: "Eficiencia", icon: GraduationCap, allowedRoles: null },
   { to: "/docentes", label: "Eval. Docente", icon: UserCheck, allowedRoles: null },
-  { to: "/cargas", label: "Cargas", icon: Upload, allowedRoles: ["admin_escolar", "admin_general"] },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, allowedRoles: ["admin_escolar", "admin_general"] },
+  { to: "/admin/ciclos", label: "Ciclos", icon: CalendarDays, allowedRoles: ["admin_general"] },
   { to: "/admin/auditoria", label: "Auditoría", icon: ClipboardList, allowedRoles: ["admin_general"] },
 ];
 

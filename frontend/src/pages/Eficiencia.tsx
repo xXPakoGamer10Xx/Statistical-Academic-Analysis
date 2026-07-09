@@ -1,24 +1,31 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { indicadoresApi, reportsApi } from "@/api/endpoints";
+import { ciclosApi, indicadoresApi, reportsApi } from "@/api/endpoints";
 import { BarChart } from "@/components/charts/BarChart";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { ExportMenu } from "@/components/ui/ExportMenu";
 import { useFilters, hasActiveFilters } from "@/stores/filters";
 import { cn } from "@/lib/utils";
+
+const MAX_GENERACIONES = 3;
 
 export function Eficiencia() {
   const filters = useFilters("eficiencia");
   const exportDisabled = !hasActiveFilters(filters);
 
-  const [genInput, setGenInput] = useState("");
-  const generaciones = genInput
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 3);
+  const { data: catalogoGeneraciones } = useQuery({
+    queryKey: ["ciclos", "generacion"],
+    queryFn: () => ciclosApi.list({ tipo: "generacion" }),
+  });
+
+  const [generaciones, setGeneraciones] = useState<string[]>([]);
+  const toggleGeneracion = (valor: string) =>
+    setGeneraciones((prev) => {
+      if (prev.includes(valor)) return prev.filter((v) => v !== valor);
+      if (prev.length >= MAX_GENERACIONES) return prev; // límite RF-06
+      return [...prev, valor];
+    });
 
   const { data, error, isLoading } = useQuery({
     queryKey: ["eficiencia", filters, generaciones],
@@ -54,14 +61,35 @@ export function Eficiencia() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Generaciones a comparar <span className="text-sm font-normal text-slate-400">(máx. 3, separadas por coma)</span></CardTitle>
+          <CardTitle>Generaciones a comparar <span className="text-sm font-normal text-slate-400">(máx. {MAX_GENERACIONES})</span></CardTitle>
         </CardHeader>
         <CardContent>
-          <Input
-            placeholder="ej. 2020-2023, 2021-2024, 2022-2025"
-            value={genInput}
-            onChange={(e) => setGenInput(e.target.value)}
-          />
+          <div className="flex flex-wrap gap-2">
+            {catalogoGeneraciones?.map((g) => {
+              const selected = generaciones.includes(g.valor);
+              const disabled = !selected && generaciones.length >= MAX_GENERACIONES;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => toggleGeneracion(g.valor)}
+                  className={cn(
+                    "rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                    selected
+                      ? "border-brand-500 bg-brand-500 text-white"
+                      : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800",
+                    disabled && "opacity-40 cursor-not-allowed",
+                  )}
+                >
+                  {g.valor}{!g.activo ? " (deshabilitado)" : ""}
+                </button>
+              );
+            })}
+            {catalogoGeneraciones?.length === 0 && (
+              <p className="text-sm text-slate-400">No hay generaciones en el catálogo. Agrégalas en Ciclos (admin).</p>
+            )}
+          </div>
           {error && (
             <div className="mt-2 rounded-xl border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-400">
               {(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Error al cargar datos"}

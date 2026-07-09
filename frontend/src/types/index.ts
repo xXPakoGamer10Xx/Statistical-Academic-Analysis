@@ -79,15 +79,26 @@ export interface DatasetField {
   description: string | null;
   allowed_values: string[] | null;
   suggested_values?: string[] | null;
+  max_value?: number | null;
+  min_value?: number | null;
 }
 
 export interface DatasetDefinition {
-  key: "matricula" | "evaluacion_academica" | "titulacion" | "evaluacion_docente" | "becas" | "caracterizacion";
+  key: "matricula" | "evaluacion_academica" | "titulacion" | "evaluacion_docente" | "becas" | "discapacidad" | "etnia";
   label: string;
   description: string;
   fields: DatasetField[];
   /** Catalogo sugerido por valor de otra columna (ej. tipo segun categoria). */
   catalogos?: Record<string, string[]> | null;
+}
+
+/** Catalogo administrable de ciclos generacionales (unifica ciclo escolar y generacion). */
+export interface Ciclo {
+  id: number;
+  valor: string;
+  tipo: "ciclo" | "generacion";
+  activo: boolean;
+  created_at: string;
 }
 
 export interface MatriculaPunto {
@@ -134,7 +145,7 @@ export interface EficienciaResumen {
 
 export interface EvaluacionDocentePunto {
   ciclo_escolar: string;
-  docente_id: string;
+  puesto: string;
   docente_nombre: string;
   programa_educativo: string;
   promedio_alumnos: number | null;
@@ -221,6 +232,5 @@ export interface CaracterizacionCategoria {
 }
 
 export interface CaracterizacionResumen {
-  total: number;
   categorias: CaracterizacionCategoria[];
 }

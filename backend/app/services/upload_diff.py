@@ -21,7 +21,7 @@ COMPARE_KEYS: dict[str, tuple[str, ...]] = {
     "evaluacion_docente": (
         "subsistema_id",
         "ciclo_escolar",
-        "docente_id",
+        "puesto",
         "programa_educativo",
         "evaluador_tipo",
     ),

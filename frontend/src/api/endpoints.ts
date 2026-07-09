@@ -1,6 +1,7 @@
 import { api } from "./client";
 import type {
   CaracterizacionResumen,
+  Ciclo,
   EficienciaResumen,
   EvaluacionDocenteResumen,
   ExcelAnalysis,
@@ -67,6 +68,22 @@ export const usersApi = {
 
 export const subsistemasApi = {
   list: () => api.get<Subsistema[]>("/subsistemas").then((r) => r.data),
+};
+
+export const ciclosApi = {
+  list: (params?: { tipo?: "ciclo" | "generacion" }) =>
+    api.get<Ciclo[]>("/ciclos", { params }).then((r) => r.data),
+  create: (payload: { valor: string; tipo: "ciclo" | "generacion" }) =>
+    api.post<Ciclo>("/ciclos", payload).then((r) => r.data),
+  update: (id: number, patch: { activo: boolean }) =>
+    api.patch<Ciclo>(`/ciclos/${id}`, patch).then((r) => r.data),
+};
+
+export const suggestionsApi = {
+  list: (field: "programa_educativo" | "docente_nombre", subsistemaId?: number) =>
+    api
+      .get<string[]>("/suggestions", { params: { field, subsistema_id: subsistemaId } })
+      .then((r) => r.data),
 };
 
 export const uploadsApi = {

@@ -16,6 +16,7 @@ class Beca(Base):
             "ciclo_escolar",
             "programa_educativo",
             "tipo",
+            "sexo",
             name="uq_beca",
         ),
     )
@@ -27,6 +28,8 @@ class Beca(Base):
     ciclo_escolar: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     programa_educativo: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     tipo: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Sexo del alumnado becado (Hombre/Mujer). Nullable: filas historicas no lo tienen.
+    sexo: Mapped[str | None] = mapped_column(String(10), nullable=True)
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     uploaded_at: Mapped[datetime] = mapped_column(

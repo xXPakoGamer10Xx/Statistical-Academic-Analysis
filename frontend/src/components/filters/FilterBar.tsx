@@ -1,10 +1,10 @@
 
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { subsistemasApi } from "@/api/endpoints";
+import { ciclosApi, subsistemasApi } from "@/api/endpoints";
 import { useAuth } from "@/hooks/useAuth";
 import { useFilters } from "@/stores/filters";
 
@@ -28,8 +28,41 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
     enabled: isAdminGeneral,
   });
 
+  // Catalogo administrable de ciclos generacionales (reemplaza la lista hardcodeada).
+  const { data: ciclos } = useQuery({
+    queryKey: ["ciclos", "ciclo"],
+    queryFn: () => ciclosApi.list({ tipo: "ciclo" }),
+    enabled: showCiclo,
+  });
+
+  // Al entrar a una vista sin ciclo seleccionado, preseleccionar el más reciente
+  // (evita pantallas vacías al abrir por primera vez).
+  useEffect(() => {
+    if (showCiclo && !filters.ciclo_escolar && ciclos && ciclos.length > 0) {
+      const masReciente = [...ciclos].sort((a, b) => b.valor.localeCompare(a.valor))[0];
+      filters.set({ ciclo_escolar: masReciente.valor });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCiclo, ciclos]);
+
   return (
     <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+      {showCiclo && (
+        <div className="min-w-[150px] flex-1">
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ciclo generacional</label>
+          <Select
+            value={filters.ciclo_escolar ?? ""}
+            onChange={(e) => filters.set({ ciclo_escolar: e.target.value || undefined })}
+          >
+            <option value="">Todos los ciclos</option>
+            {ciclos?.map((c) => (
+              <option key={c.id} value={c.valor}>
+                {c.valor}{!c.activo ? " (deshabilitado)" : ""}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
       {isAdminGeneral && (
         <div className="min-w-[180px]">
           <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Escuela</label>
@@ -44,38 +77,6 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
               <option key={s.id} value={s.id}>{s.nombre}</option>
             ))}
           </Select>
-        </div>
-      )}
-      {showCiclo && (
-        <div className="min-w-[150px] flex-1">
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ciclo escolar</label>
-          <div className="relative group">
-            <Input
-              list="ciclos"
-              placeholder="ej. 2025-2026"
-              className="pr-10"
-              value={filters.ciclo_escolar ?? ""}
-              maxLength={9}
-              onChange={(e) => {
-                let val = e.target.value.replace(/[^0-9-]/g, "");
-                if (val.startsWith("0")) val = val.slice(1);
-                filters.set({ ciclo_escolar: val || undefined });
-              }}
-            />
-            <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
-              <ChevronDown className="h-4 w-4 stroke-[2.5px]" />
-            </div>
-          </div>
-          <datalist id="ciclos">
-            <option value="2018-2019" />
-            <option value="2019-2020" />
-            <option value="2020-2021" />
-            <option value="2021-2022" />
-            <option value="2022-2023" />
-            <option value="2023-2024" />
-            <option value="2024-2025" />
-            <option value="2025-2026" />
-          </datalist>
         </div>
       )}
       {showCuatrimestre && (

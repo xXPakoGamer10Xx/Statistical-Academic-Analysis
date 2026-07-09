@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Users, BookOpen, GraduationCap, UserCheck, ArrowRight } from "lucide-react";
@@ -54,13 +54,6 @@ export function Dashboard() {
   const filters = useFilters("dashboard");
   const noFilters = !hasActiveFilters(filters);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("actual");
-
-  // Initialize cycle for Dashboard only if it's empty
-  useEffect(() => {
-    if (!filters.ciclo_escolar) {
-      filters.set({ ciclo_escolar: "2025-2026" });
-    }
-  }, []); // Run once on mount
 
   const { data: matricula } = useQuery({
     queryKey: ["matricula", filters],

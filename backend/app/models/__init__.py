@@ -1,6 +1,7 @@
 from app.models.audit_log import AuditLog
 from app.models.beca import Beca
 from app.models.caracterizacion import Caracterizacion
+from app.models.ciclo_generacional import CicloGeneracional
 from app.models.evaluacion import EvaluacionAcademica, EvaluacionDocente
 from app.models.matricula import Matricula
 from app.models.subsistema import Subsistema
@@ -12,6 +13,7 @@ __all__ = [
     "AuditLog",
     "Beca",
     "Caracterizacion",
+    "CicloGeneracional",
     "EvaluacionAcademica",
     "EvaluacionDocente",
     "Matricula",

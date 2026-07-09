@@ -33,7 +33,8 @@ const DATASET_LABELS: Record<string, string> = {
   titulacion: "Titulación",
   evaluacion_docente: "Evaluación Docente",
   becas: "Becas",
-  caracterizacion: "Caracterización (Discapacidad / Etnia)",
+  discapacidad: "Discapacidad",
+  etnia: "Etnia",
 };
 
 const STEPS: { id: WizardStep; label: string }[] = [

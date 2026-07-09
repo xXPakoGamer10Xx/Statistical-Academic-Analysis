@@ -6,10 +6,10 @@ from app.services.csv_processor import parse_and_validate
 def test_parse_and_validate_becas_dataset(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,programa_educativo,tipo,cantidad",
-            "2024-2025,Ingenieria,Manutencion,25",
-            "2024-2025,Ingenieria,Excelencia,10",
-            "2024-2025,Administracion,,5",
+            "ciclo_escolar,programa_educativo,tipo,sexo,cantidad",
+            "2024-2025,Ingenieria,Manutencion,Mujer,25",
+            "2024-2025,Ingenieria,Excelencia,Hombre,10",
+            "2024-2025,Administracion,,Mujer,5",
         ]
     )
     file_path = tmp_path / "becas.csv"

@@ -86,6 +86,7 @@ export function Docentes() {
               <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
                 <th className="py-2">Ciclo</th>
                 <th>Docente</th>
+                <th>Puesto</th>
                 <th>Programa</th>
                 <th>Alumnos</th>
                 <th>Directivos</th>
@@ -97,6 +98,7 @@ export function Docentes() {
                 <tr key={i} className="border-b border-slate-100">
                   <td className="py-2">{d.ciclo_escolar}</td>
                   <td>{d.docente_nombre}</td>
+                  <td>{d.puesto}</td>
                   <td>{d.programa_educativo}</td>
                   <td>{d.promedio_alumnos?.toFixed(2) ?? "—"}</td>
                   <td>{d.promedio_directivos?.toFixed(2) ?? "—"}</td>

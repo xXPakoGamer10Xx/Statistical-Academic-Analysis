@@ -207,8 +207,8 @@ async def calcular_eficiencia(
         acc = agregados.setdefault(
             r.generacion, {"matricula": 0, "concluyeron": 0, "egresados": 0, "titulados": 0}
         )
-        acc["matricula"] += r.matricula_generacional
-        acc["concluyeron"] += r.concluyeron_estudios
+        acc["matricula"] += r.matricula_generacional or 0
+        acc["concluyeron"] += r.concluyeron_estudios or 0
         acc["egresados"] += r.egresados
         acc["titulados"] += r.titulados
 
@@ -234,14 +234,14 @@ async def calcular_evaluacion_docente(
 ) -> EvaluacionDocenteResumen:
     query = select(
         EvaluacionDocente.ciclo_escolar,
-        EvaluacionDocente.docente_id,
+        EvaluacionDocente.puesto,
         EvaluacionDocente.docente_nombre,
         EvaluacionDocente.programa_educativo,
         EvaluacionDocente.evaluador_tipo,
         func.avg(EvaluacionDocente.puntaje).label("promedio"),
     ).group_by(
         EvaluacionDocente.ciclo_escolar,
-        EvaluacionDocente.docente_id,
+        EvaluacionDocente.puesto,
         EvaluacionDocente.docente_nombre,
         EvaluacionDocente.programa_educativo,
         EvaluacionDocente.evaluador_tipo,
@@ -252,10 +252,8 @@ async def calcular_evaluacion_docente(
     rows = (await db.execute(query)).all()
 
     agrupados: dict[tuple[str, str, str, str], dict[str, float]] = {}
-    nombres: dict[str, str] = {}
     for r in rows:
-        key = (r.ciclo_escolar, r.docente_id, r.docente_nombre, r.programa_educativo)
-        nombres[r.docente_id] = r.docente_nombre
+        key = (r.ciclo_escolar, r.puesto, r.docente_nombre, r.programa_educativo)
         bucket = agrupados.setdefault(key, {})
         bucket[r.evaluador_tipo] = float(r.promedio) if r.promedio else 0.0
 
@@ -267,7 +265,7 @@ async def calcular_evaluacion_docente(
     docentes = [
         EvaluacionDocentePunto(
             ciclo_escolar=k[0],
-            docente_id=k[1],
+            puesto=k[1],
             docente_nombre=k[2],
             programa_educativo=k[3],
             promedio_alumnos=v.get("alumno"),
@@ -334,10 +332,10 @@ async def calcular_caracterizacion(
     ]
     categorias.sort(key=lambda c: c.categoria)
 
-    return CaracterizacionResumen(
-        total=sum(c.total for c in categorias),
-        categorias=categorias,
-    )
+    # Nota: los totales de beca/discapacidad/etnia se reportan de forma independiente y
+    # NUNCA se suman entre si -- un mismo alumno puede tener etnia Y discapacidad reportadas
+    # (filas separadas), sumar los totales duplicaria el conteo de personas.
+    return CaracterizacionResumen(categorias=categorias)
 
 
 async def calcular_indicadores_opcionales(

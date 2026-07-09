@@ -21,8 +21,10 @@ class Titulacion(Base):
     generacion: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     programa_educativo: Mapped[str] = mapped_column(String(150), nullable=False)
 
-    matricula_generacional: Mapped[int] = mapped_column(Integer, nullable=False)
-    concluyeron_estudios: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Ya no se capturan desde el formulario/CSV (dataset_definitions.py); se mantienen
+    # nullable para no perder los valores historicos ya cargados por el ETL.
+    matricula_generacional: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    concluyeron_estudios: Mapped[int | None] = mapped_column(Integer, nullable=True)
     egresados: Mapped[int] = mapped_column(Integer, nullable=False)
     titulados: Mapped[int] = mapped_column(Integer, nullable=False)
     ingresados_ns: Mapped[int | None] = mapped_column(Integer, nullable=True)

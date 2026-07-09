@@ -11,7 +11,8 @@ DatasetType = Literal[
     "titulacion",
     "evaluacion_docente",
     "becas",
-    "caracterizacion",
+    "discapacidad",
+    "etnia",
 ]
 
 
@@ -25,6 +26,11 @@ class DatasetField:
     allowed_values: tuple[str, ...] | None = None
     # suggested_values: catalogo SUGERIDO (el usuario puede elegir uno o escribir el suyo).
     suggested_values: tuple[str, ...] | None = None
+    # max_value: limite superior para campos int/float (ej. puntaje de 1 a 10). Sin limite si es None.
+    max_value: float | None = None
+    # min_value: limite inferior para campos int/float. Si es None, el piso implicito es 0
+    # (ningun campo del sistema admite negativos).
+    min_value: float | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -40,8 +46,11 @@ TIPOS_BECA: tuple[str, ...] = (
     "Movilidad",
     "Titulacion",
     "Apoyo Discapacidad",
+    "Madres solteras",
     "Otra",
 )
+
+SEXOS: tuple[str, ...] = ("Hombre", "Mujer")
 
 CATALOGOS_CARACTERIZACION: dict[str, tuple[str, ...]] = {
     "discapacidad": (
@@ -107,7 +116,6 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             DatasetField("hombres", "int"),
             DatasetField("mujeres", "int"),
             DatasetField("poblacion_edad_escolar", "int", required=False),
-            DatasetField("egresados_nms", "int", required=False),
         ),
     ),
     "evaluacion_academica": DatasetDefinition(
@@ -129,11 +137,8 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
         fields=(
             DatasetField("generacion", "string"),
             DatasetField("programa_educativo", "string"),
-            DatasetField("matricula_generacional", "int"),
-            DatasetField("concluyeron_estudios", "int"),
             DatasetField("egresados", "int"),
             DatasetField("titulados", "int"),
-            DatasetField("ingresados_ns", "int", required=False),
         ),
     ),
     "evaluacion_docente": DatasetDefinition(
@@ -142,7 +147,12 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
         description="Puntajes de evaluacion por docente. Un registro por evaluador por docente.",
         fields=(
             DatasetField("ciclo_escolar", "string"),
-            DatasetField("docente_id", "string"),
+            DatasetField(
+                "puesto",
+                "string",
+                allowed_values=("P.A.", "P.C."),
+                description="Puesto del docente. Valores permitidos: P.A. (Profesor de Asignatura) o P.C. (Profesor de Carrera).",
+            ),
             DatasetField("docente_nombre", "string"),
             DatasetField("programa_educativo", "string"),
             DatasetField(
@@ -151,7 +161,13 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
                 allowed_values=("alumno", "directivo"),
                 description="Valores permitidos: alumno o directivo.",
             ),
-            DatasetField("puntaje", "float"),
+            DatasetField(
+                "puntaje",
+                "float",
+                description="Puntaje de evaluacion, escala 1-10.",
+                min_value=1,
+                max_value=10,
+            ),
         ),
     ),
     "becas": DatasetDefinition(
@@ -167,39 +183,73 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             DatasetField(
                 "tipo",
                 "string",
-                description="Tipo de beca (ej. Manutencion, Excelencia). Catalogo sugerido; admite texto libre.",
-                suggested_values=TIPOS_BECA,
+                description="Tipo de beca. Valores permitidos: " + ", ".join(TIPOS_BECA) + ".",
+                allowed_values=TIPOS_BECA,
+            ),
+            DatasetField(
+                "sexo",
+                "string",
+                allowed_values=SEXOS,
+                description="Sexo del alumnado becado. Valores permitidos: Hombre o Mujer.",
             ),
             DatasetField("cantidad", "int", description="Numero de alumnos becados de ese tipo."),
         ),
     ),
-    "caracterizacion": DatasetDefinition(
-        key="caracterizacion",
-        label="Caracterizacion (Discapacidad / Etnia)",
+    "discapacidad": DatasetDefinition(
+        key="discapacidad",
+        label="Discapacidad",
         description=(
-            "Desglose del alumnado por discapacidad o etnia. "
+            "Desglose del alumnado con discapacidad por tipo. "
             "Un registro por cada tipo, con la cantidad de alumnos por programa y ciclo."
         ),
         fields=(
             DatasetField("ciclo_escolar", "string"),
             DatasetField("programa_educativo", "string"),
             DatasetField(
-                "categoria",
-                "string",
-                allowed_values=("discapacidad", "etnia"),
-                description="Valores permitidos: discapacidad o etnia.",
-            ),
-            DatasetField(
                 "tipo",
                 "string",
-                description="Tipo especifico (ej. Motriz, Nahuatl). Catalogo sugerido; admite texto libre.",
-                suggested_values=tuple(
-                    sorted({v for vals in CATALOGOS_CARACTERIZACION.values() for v in vals})
+                description=(
+                    "Tipo de discapacidad. Valores permitidos: "
+                    + ", ".join(CATALOGOS_CARACTERIZACION["discapacidad"])
+                    + "."
                 ),
+                allowed_values=CATALOGOS_CARACTERIZACION["discapacidad"],
+            ),
+            DatasetField(
+                "sexo",
+                "string",
+                allowed_values=SEXOS,
+                description="Sexo del alumnado. Valores permitidos: Hombre o Mujer.",
             ),
             DatasetField("cantidad", "int", description="Numero de alumnos de ese tipo."),
         ),
-        catalogos=CATALOGOS_CARACTERIZACION,
+    ),
+    "etnia": DatasetDefinition(
+        key="etnia",
+        label="Etnia",
+        description=(
+            "Desglose del alumnado por etnia. "
+            "Un registro por cada tipo, con la cantidad de alumnos por programa y ciclo."
+        ),
+        fields=(
+            DatasetField("ciclo_escolar", "string"),
+            DatasetField("programa_educativo", "string"),
+            DatasetField(
+                "tipo",
+                "string",
+                description=(
+                    "Etnia. Valores permitidos: " + ", ".join(CATALOGOS_CARACTERIZACION["etnia"]) + "."
+                ),
+                allowed_values=CATALOGOS_CARACTERIZACION["etnia"],
+            ),
+            DatasetField(
+                "sexo",
+                "string",
+                allowed_values=SEXOS,
+                description="Sexo del alumnado. Valores permitidos: Hombre o Mujer.",
+            ),
+            DatasetField("cantidad", "int", description="Numero de alumnos de ese tipo."),
+        ),
     ),
 }
 
