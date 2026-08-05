@@ -210,6 +210,13 @@ async def calcular_bajas(
     return BajasResumen(por_carrera=por_carrera, totales=totales)
 
 
+def _concluyeron_estudios(r: Titulacion) -> int:
+    """"Estudiantes que concluyen los estudios de NS": ya no se captura por formulario/CSV
+    (dataset_definitions.py solo pide egresados/titulados), así que se aproxima con
+    egresados cuando no hay un valor propio cargado (confirmado con el usuario)."""
+    return r.concluyeron_estudios if r.concluyeron_estudios is not None else r.egresados
+
+
 async def calcular_eficiencia(
     db: AsyncSession,
     subsistema_id: int | None,
@@ -244,10 +251,10 @@ async def calcular_eficiencia(
                 generacion=r.generacion,
                 programa_educativo=r.programa_educativo,
                 eficiencia_terminal=calculate_percentage(
-                    r.concluyeron_estudios,
+                    _concluyeron_estudios(r),
                     r.matricula_generacional,
                 ),
-                indice_titulacion=calculate_percentage(r.titulados, r.concluyeron_estudios),
+                indice_titulacion=calculate_percentage(r.titulados, _concluyeron_estudios(r)),
                 egresados=r.egresados,
                 titulados=r.titulados,
             )
@@ -264,7 +271,7 @@ async def calcular_eficiencia(
             r.generacion, {"matricula": 0, "concluyeron": 0, "egresados": 0, "titulados": 0}
         )
         acc["matricula"] += r.matricula_generacional or 0
-        acc["concluyeron"] += r.concluyeron_estudios or 0
+        acc["concluyeron"] += _concluyeron_estudios(r)
         acc["egresados"] += r.egresados
         acc["titulados"] += r.titulados
 
