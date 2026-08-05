@@ -29,6 +29,13 @@ class Titulacion(Base):
     titulados: Mapped[int] = mapped_column(Integer, nullable=False)
     ingresados_ns: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # Desglose por sexo, disponible solo para generaciones cargadas desde el historico
+    # detallado por cohorte (no se captura desde el formulario/CSV estandar).
+    egresados_hombres: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    egresados_mujeres: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    titulados_hombres: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    titulados_mujeres: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
