@@ -20,6 +20,10 @@ interface Props {
 type Row = Record<string, string>;
 
 const MADRES_SOLTERAS = "madres solteras";
+// Sentinel para "+ Agregar nueva carrera" en los desplegables de programa_educativo:
+// el catalogo de carreras es solo de sugerencia (no estricto), asi que siempre debe
+// poder capturarse una carrera nueva que aun no exista en la BD (ej. un TSU nuevo).
+const NUEVA_CARRERA = "__nueva_carrera__";
 
 function emptyRow(def: DatasetDefinition | undefined): Row {
   const r: Row = {};
@@ -97,6 +101,9 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
   const def = useMemo(() => formats?.find((f) => f.key === datasetType), [formats, datasetType]);
   const isDocente = datasetType === "evaluacion_docente";
   const [rows, setRows] = useState<Row[]>([emptyRow(def)]);
+  // Filas cuyo campo "programa_educativo" esta en modo "escribir carrera nueva" (Input)
+  // en vez del desplegable de carreras existentes.
+  const [customProgramaRows, setCustomProgramaRows] = useState<Set<number>>(new Set());
 
   const effectiveSubsistemaId = isAdminGeneral
     ? (subsistemaId === "" ? undefined : Number(subsistemaId))
@@ -214,6 +221,7 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
   // Al cambiar el tipo de dataset, reiniciar las filas con los campos correctos
   const changeDataset = (key: string) => {
     setDatasetType(key);
+    setCustomProgramaRows(new Set());
     if (key === "evaluacion_docente") {
       setRows([emptyDocenteRow()]);
       return;
@@ -232,6 +240,21 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
       }
       return updated;
     }));
+
+  // Selecciono "+ Agregar nueva carrera": pasa esa fila a modo texto libre.
+  const enterCustomPrograma = (rowIdx: number) => {
+    setCustomProgramaRows((s) => new Set(s).add(rowIdx));
+    setCell(rowIdx, "programa_educativo", "");
+  };
+  // "Elegir de la lista": vuelve esa fila al desplegable de carreras existentes.
+  const exitCustomPrograma = (rowIdx: number) => {
+    setCustomProgramaRows((s) => {
+      const next = new Set(s);
+      next.delete(rowIdx);
+      return next;
+    });
+    setCell(rowIdx, "programa_educativo", "");
+  };
 
   const addRow = () => setRows((rs) => [...rs, isDocente ? emptyDocenteRow() : emptyRow(def)]);
   const removeRow = (idx: number) => setRows((rs) => (rs.length > 1 ? rs.filter((_, i) => i !== idx) : rs));
@@ -345,23 +368,39 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                           </datalist>
                         </td>
                         <td className="px-1 py-1.5">
-                          {programaSugerencias && programaSugerencias.length > 0 ? (
+                          {programaSugerencias && programaSugerencias.length > 0 && !customProgramaRows.has(rowIdx) ? (
                             <Select
                               value={row.programa_educativo ?? ""}
-                              onChange={(e) => setCell(rowIdx, "programa_educativo", e.target.value)}
+                              onChange={(e) =>
+                                e.target.value === NUEVA_CARRERA
+                                  ? enterCustomPrograma(rowIdx)
+                                  : setCell(rowIdx, "programa_educativo", e.target.value)
+                              }
                               className="min-w-[160px]"
                             >
                               <option value="">—</option>
                               {programaSugerencias.map((v) => <option key={v} value={v}>{v}</option>)}
+                              <option value={NUEVA_CARRERA}>+ Agregar nueva carrera…</option>
                             </Select>
                           ) : (
-                            <Input
-                              list={programaListId}
-                              value={row.programa_educativo ?? ""}
-                              onChange={(e) => setCell(rowIdx, "programa_educativo", e.target.value)}
-                              placeholder="Escribe la carrera…"
-                              className="min-w-[160px]"
-                            />
+                            <div className="space-y-1">
+                              <Input
+                                list={programaListId}
+                                value={row.programa_educativo ?? ""}
+                                onChange={(e) => setCell(rowIdx, "programa_educativo", e.target.value)}
+                                placeholder="Escribe la carrera…"
+                                className="min-w-[160px]"
+                              />
+                              {programaSugerencias && programaSugerencias.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => exitCustomPrograma(rowIdx)}
+                                  className="text-[11px] font-medium text-brand-600 hover:underline"
+                                >
+                                  Elegir de la lista
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-1 py-1.5">
@@ -433,19 +472,45 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                             ) : f.name === "cuatrimestre" ? (
                               <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
                                 <option value="">—</option>
-                                {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
+                                {Array.from({ length: 11 }, (_, n) => n).map((n) => <option key={n} value={n}>{n}</option>)}
                               </Select>
                             ) : f.name === "sexo" && datasetType === "becas" && row.tipo?.trim().toLowerCase() === MADRES_SOLTERAS ? (
                               // "Madres solteras" solo aplica a mujeres: sin opcion de eleccion.
                               <Select value="Mujer" disabled onChange={() => {}}>
                                 <option value="Mujer">Mujer</option>
                               </Select>
-                            ) : f.name === "programa_educativo" && programaSugerencias && programaSugerencias.length > 0 ? (
-                              // Carrera: desplegable estricto con las carreras ya existentes en el sistema.
-                              <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                            ) : f.name === "programa_educativo" && programaSugerencias && programaSugerencias.length > 0 && !customProgramaRows.has(rowIdx) ? (
+                              // Carrera: desplegable con las carreras ya existentes, mas opcion de agregar una nueva.
+                              <Select
+                                value={row[f.name] ?? ""}
+                                onChange={(e) =>
+                                  e.target.value === NUEVA_CARRERA
+                                    ? enterCustomPrograma(rowIdx)
+                                    : setCell(rowIdx, f.name, e.target.value)
+                                }
+                              >
                                 <option value="">—</option>
                                 {programaSugerencias.map((v) => <option key={v} value={v}>{v}</option>)}
+                                <option value={NUEVA_CARRERA}>+ Agregar nueva carrera…</option>
                               </Select>
+                            ) : f.name === "programa_educativo" && customProgramaRows.has(rowIdx) ? (
+                              <div className="space-y-1">
+                                <Input
+                                  value={row[f.name] ?? ""}
+                                  onChange={(e) => setCell(rowIdx, f.name, e.target.value)}
+                                  placeholder="Escribe la carrera…"
+                                  className="min-w-[140px]"
+                                />
+                                {programaSugerencias && programaSugerencias.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => exitCustomPrograma(rowIdx)}
+                                    className="text-[11px] font-medium text-brand-600 hover:underline"
+                                  >
+                                    Elegir de la lista
+                                  </button>
+                                )}
+                              </div>
                             ) : f.allowed_values && f.allowed_values.length > 0 ? (
                               <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
                                 <option value="">—</option>

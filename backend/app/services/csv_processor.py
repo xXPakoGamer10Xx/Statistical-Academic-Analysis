@@ -133,11 +133,11 @@ def sanitize_errors_for_json(errors: list[dict[str, Any]] | None) -> list[dict[s
 
 
 def _parse_cuatrimestre_label(label: str) -> int | None:
-    """Acepta 0/1/2/3 o etiquetas de periodo (Sep-Dic, Ene-Abr, May-Ago, SEPT.)."""
+    """Acepta 0-10 o etiquetas de periodo (Sep-Dic, Ene-Abr, May-Ago, SEPT.)."""
     label = str(label).strip()
     if label.isdigit():
         n = int(label)
-        return n if 0 <= n <= 3 else None
+        return n if 0 <= n <= 10 else None
     lo = label.lower().replace(" ", "")
     if any(x in lo for x in ("sep", "s-d", "sd", "sept")):
         return 1

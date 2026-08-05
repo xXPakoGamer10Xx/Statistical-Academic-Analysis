@@ -96,7 +96,7 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
             }
           >
             <option value="">Todos</option>
-            {[0, 1, 2, 3].map((num) => (
+            {Array.from({ length: 11 }, (_, num) => num).map((num) => (
               <option key={num} value={num}>
                 {num}
               </option>
