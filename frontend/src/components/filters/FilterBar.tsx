@@ -2,9 +2,8 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { ciclosApi, subsistemasApi } from "@/api/endpoints";
+import { ciclosApi, subsistemasApi, suggestionsApi } from "@/api/endpoints";
 import { useAuth } from "@/hooks/useAuth";
 import { useFilters } from "@/stores/filters";
 
@@ -20,12 +19,20 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
   const filters = useFilters(scope);
   const { user } = useAuth();
   const isAdminGeneral = user?.role === "admin_general";
+  const effectiveSubsistemaId = isAdminGeneral ? filters.subsistema_id : user?.subsistema_id ?? undefined;
 
   // El admin general puede elegir qué escuela ver (las demás están limitadas a la suya).
   const { data: escuelas } = useQuery({
     queryKey: ["subsistemas"],
     queryFn: subsistemasApi.list,
     enabled: isAdminGeneral,
+  });
+
+  // Carreras ya existentes (desplegable estricto, ya no se busca por texto libre).
+  const { data: programas } = useQuery({
+    queryKey: ["suggestions", "programa_educativo", effectiveSubsistemaId],
+    queryFn: () => suggestionsApi.list("programa_educativo", effectiveSubsistemaId),
+    enabled: showPrograma,
   });
 
   // Catalogo administrable de ciclos generacionales (reemplaza la lista hardcodeada).
@@ -89,7 +96,7 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
             }
           >
             <option value="">Todos</option>
-            {[1, 2, 3].map((num) => (
+            {[0, 1, 2, 3].map((num) => (
               <option key={num} value={num}>
                 {num}
               </option>
@@ -100,15 +107,15 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
       {showPrograma && (
         <div className="min-w-[200px] flex-1">
           <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Programa educativo</label>
-          <Input
-            placeholder="Buscar programa..."
+          <Select
             value={filters.programa_educativo ?? ""}
-            maxLength={100}
-            onChange={(e) => {
-              const val = e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, "");
-              filters.set({ programa_educativo: val || undefined });
-            }}
-          />
+            onChange={(e) => filters.set({ programa_educativo: e.target.value || undefined })}
+          >
+            <option value="">Todas las carreras</option>
+            {programas?.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </Select>
         </div>
       )}
       <Button variant="secondary" className="h-11" onClick={() => filters.reset()}>

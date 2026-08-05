@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ciclosApi, indicadoresApi, reportsApi } from "@/api/endpoints";
 import { BarChart } from "@/components/charts/BarChart";
+import { PieChart } from "@/components/charts/PieChart";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ExportMenu } from "@/components/ui/ExportMenu";
 import { useFilters, hasActiveFilters } from "@/stores/filters";
 import { cn } from "@/lib/utils";
+import type { EficienciaPunto } from "@/types";
 
 const MAX_GENERACIONES = 3;
 
@@ -32,12 +34,23 @@ export function Eficiencia() {
     queryFn: () => indicadoresApi.eficiencia({ ...filters, generaciones }),
   });
 
-  const cats =
-    data?.generaciones.map((g) =>
-      g.programa_educativo === "Todos los programas" ? g.generacion : `${g.generacion} · ${g.programa_educativo}`
-    ) ?? [];
-  const efTerminal = data?.generaciones.map((g) => Number(g.eficiencia_terminal.toFixed(2))) ?? [];
-  const titulacion = data?.generaciones.map((g) => Number(g.indice_titulacion.toFixed(2))) ?? [];
+  // Desglose por carrera (una fila por programa/generacion, sin agregar): alimenta las
+  // tarjetas de pastel + barras por carrera, sin tocar la consulta agregada de la tabla.
+  const { data: porProgramaData } = useQuery({
+    queryKey: ["eficiencia", "por-programa", filters, generaciones],
+    queryFn: () => indicadoresApi.eficiencia({ ...filters, generaciones, agrupar_por_programa: true }),
+  });
+
+  // Para cada carrera, la generacion mas reciente entre las seleccionadas (una tarjeta
+  // por carrera, no una por cada combinacion carrera/generacion).
+  const tarjetasPorCarrera = useMemo(() => {
+    const porCarrera = new Map<string, EficienciaPunto>();
+    for (const g of porProgramaData?.generaciones ?? []) {
+      const actual = porCarrera.get(g.programa_educativo);
+      if (!actual || g.generacion > actual.generacion) porCarrera.set(g.programa_educativo, g);
+    }
+    return [...porCarrera.values()].sort((a, b) => a.programa_educativo.localeCompare(b.programa_educativo));
+  }, [porProgramaData]);
 
   return (
     <div className="space-y-8" id="dashboard-eficiencia">
@@ -113,20 +126,43 @@ export function Eficiencia() {
               <p className="mt-1 text-xs">Sube un archivo de tipo <span className="font-bold text-slate-600 dark:text-slate-300">Titulación</span> en la sección Cargas.</p>
             </div>
           )}
-          <Card>
-            <CardHeader><CardTitle>Eficiencia Terminal vs Índice de Titulación (%)</CardTitle></CardHeader>
-            <CardContent>
-              <BarChart
-                categories={cats}
-                series={[
-                  { name: "Eficiencia Terminal", data: efTerminal, color: "#1d4ed8" },
-                  { name: "Índice Titulación", data: titulacion, color: "#10b981" },
-                ]}
-                formatter="%"
-                height={400}
-              />
-            </CardContent>
-          </Card>
+          {tarjetasPorCarrera.length > 0 && (
+            <div>
+              <h2 className="mb-4 text-base font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Por carrera <span className="normal-case font-normal text-slate-400">(generación más reciente de las seleccionadas)</span>
+              </h2>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {tarjetasPorCarrera.map((g) => (
+                  <Card key={g.programa_educativo}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{g.programa_educativo}</CardTitle>
+                      <p className="text-xs font-medium text-slate-400">Generación {g.generacion}</p>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="mb-1 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">Ef. Terminal / Titulación</p>
+                        <PieChart
+                          height={180}
+                          data={[
+                            { name: "Ef. Terminal", value: Number(g.eficiencia_terminal.toFixed(2)), color: "#1d4ed8" },
+                            { name: "Titulación", value: Number(g.indice_titulacion.toFixed(2)), color: "#10b981" },
+                          ]}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">Egresados / Titulados</p>
+                        <BarChart
+                          height={180}
+                          categories={["Egresados", "Titulados"]}
+                          series={[{ name: g.programa_educativo, data: [g.egresados, g.titulados], color: "#1e40af" }]}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Card>
             <CardHeader><CardTitle>Detalle por generación</CardTitle></CardHeader>

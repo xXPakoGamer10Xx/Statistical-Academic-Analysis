@@ -1,5 +1,6 @@
 import { api } from "./client";
 import type {
+  BajasResumen,
   CaracterizacionResumen,
   Ciclo,
   EficienciaResumen,
@@ -181,16 +182,25 @@ export const indicadoresApi = {
     api.get<RendimientoResumen>("/rendimiento", { params: buildParams(filters) }).then((r) => r.data),
   opcionales: (filters: Pick<FilterState, "subsistema_id" | "ciclo_escolar">) =>
     api.get<IndicadoresOpcionales>("/rendimiento/opcionales", { params: buildParams(filters as FilterState) }).then((r) => r.data),
-  eficiencia: (filters: FilterState & { generaciones?: string[] }) =>
+  eficiencia: (filters: FilterState & { generaciones?: string[]; agrupar_por_programa?: boolean }) =>
     api
       .get<EficienciaResumen>("/eficiencia", {
-        params: { ...buildParams(filters), generaciones: filters.generaciones },
+        params: {
+          ...buildParams(filters),
+          generaciones: filters.generaciones,
+          agrupar_por_programa: filters.agrupar_por_programa,
+        },
       })
       .then((r) => r.data),
   docentes: (filters: FilterState) =>
     api.get<EvaluacionDocenteResumen>("/docentes", { params: buildParams(filters) }).then((r) => r.data),
   caracterizacion: (filters: FilterState) =>
     api.get<CaracterizacionResumen>("/caracterizacion", { params: buildParams(filters) }).then((r) => r.data),
+};
+
+export const bajasApi = {
+  get: (filters: FilterState) =>
+    api.get<BajasResumen>("/bajas", { params: buildParams(filters) }).then((r) => r.data),
 };
 
 export const reportsApi = {

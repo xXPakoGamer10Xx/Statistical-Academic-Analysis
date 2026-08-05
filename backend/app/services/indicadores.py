@@ -21,6 +21,8 @@ from app.models.matricula import Matricula
 from app.models.titulacion import Titulacion
 from app.services.formulas import calculate_matricula_actual, calculate_percentage
 from app.schemas.indicadores import (
+    BajasPunto,
+    BajasResumen,
     CaracterizacionCategoria,
     CaracterizacionResumen,
     CaracterizacionTipo,
@@ -155,11 +157,51 @@ async def calcular_rendimiento(
     )
 
 
+async def calcular_bajas(
+    db: AsyncSession,
+    subsistema_id: int | None,
+    ciclo_escolar: str | None = None,
+    cuatrimestre: int | None = None,
+    programa_educativo: str | None = None,
+) -> BajasResumen:
+    """Bajas por reprobación y por deserción, agrupadas por carrera, con fila de totales.
+
+    Es una capa de visualización/agregación: los mismos números ya alimentan Reprobación y
+    Deserción % en calcular_rendimiento() (vía calculate_percentage), no se agrega lógica de
+    fórmula nueva aquí.
+    """
+    query = select(
+        Matricula.programa_educativo,
+        func.sum(Matricula.bajas_reprobacion).label("bajas_reprobacion"),
+        func.sum(Matricula.bajas_desercion).label("bajas_desercion"),
+    ).group_by(Matricula.programa_educativo).order_by(Matricula.programa_educativo)
+    query = _apply_filters(
+        query, Matricula, subsistema_id, ciclo_escolar, programa_educativo, cuatrimestre
+    )
+    rows = (await db.execute(query)).all()
+
+    por_carrera = [
+        BajasPunto(
+            programa_educativo=r.programa_educativo,
+            bajas_reprobacion=int(r.bajas_reprobacion or 0),
+            bajas_desercion=int(r.bajas_desercion or 0),
+        )
+        for r in rows
+    ]
+    totales = BajasPunto(
+        programa_educativo="Total",
+        bajas_reprobacion=sum(p.bajas_reprobacion for p in por_carrera),
+        bajas_desercion=sum(p.bajas_desercion for p in por_carrera),
+    )
+    return BajasResumen(por_carrera=por_carrera, totales=totales)
+
+
 async def calcular_eficiencia(
     db: AsyncSession,
     subsistema_id: int | None,
     generaciones: list[str] | None = None,
     programa_educativo: str | None = None,
+    agrupar_por_programa: bool = False,
 ) -> EficienciaResumen:
     base_conditions = []
     if subsistema_id is not None:
@@ -182,7 +224,7 @@ async def calcular_eficiencia(
     query = select(Titulacion).order_by(Titulacion.generacion.desc()).where(and_(*conditions))
     rows = (await db.execute(query)).scalars().all()
 
-    if programa_educativo:
+    if programa_educativo or agrupar_por_programa:
         puntos = [
             EficienciaPunto(
                 generacion=r.generacion,

@@ -77,3 +77,14 @@ class CaracterizacionCategoria(BaseModel):
 
 class CaracterizacionResumen(BaseModel):
     categorias: list[CaracterizacionCategoria]
+
+
+class BajasPunto(BaseModel):
+    programa_educativo: str
+    bajas_reprobacion: int
+    bajas_desercion: int
+
+
+class BajasResumen(BaseModel):
+    por_carrera: list[BajasPunto]
+    totales: BajasPunto

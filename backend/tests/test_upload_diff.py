@@ -7,8 +7,9 @@ def _matricula_row(**overrides) -> dict:
         "ciclo_escolar": "2024-2025",
         "cuatrimestre": 1,
         "programa_educativo": "Ingenieria",
-        "total": 100,
-        "nuevo_ingreso": 20,
+        "ingreso_examen": 15,
+        "ingreso_pase_directo": 4,
+        "ingreso_renoes": 1,
         "bajas_reprobacion": 5,
         "bajas_desercion": 3,
         "hombres": 55,
@@ -22,12 +23,12 @@ def _matricula_row(**overrides) -> dict:
 
 def test_compare_detects_added_modified_removed_and_unchanged() -> None:
     baseline = [
-        _matricula_row(programa_educativo="Ingenieria", total=100),
-        _matricula_row(programa_educativo="Administracion", total=90),
+        _matricula_row(programa_educativo="Ingenieria", ingreso_examen=100),
+        _matricula_row(programa_educativo="Administracion", ingreso_examen=90),
     ]
     new_rows = [
-        _matricula_row(programa_educativo="Ingenieria", total=110),
-        _matricula_row(programa_educativo="Contabilidad", total=70),
+        _matricula_row(programa_educativo="Ingenieria", ingreso_examen=110),
+        _matricula_row(programa_educativo="Contabilidad", ingreso_examen=70),
     ]
 
     result = compare_upload_with_baseline(new_rows, baseline, "matricula", detail_limit=10)
@@ -40,14 +41,14 @@ def test_compare_detects_added_modified_removed_and_unchanged() -> None:
     }
     assert result["added"][0]["key"]["programa_educativo"] == "Contabilidad"
     assert result["removed"][0]["key"]["programa_educativo"] == "Administracion"
-    assert result["modified"][0]["changes"][0]["field"] == "total"
+    assert result["modified"][0]["changes"][0]["field"] == "ingreso_examen"
     assert result["modified"][0]["changes"][0]["old_value"] == "100"
     assert result["modified"][0]["changes"][0]["new_value"] == "110"
 
 
 def test_compare_normalizes_numeric_formats() -> None:
-    baseline = [_matricula_row(total=100)]
-    new_rows = [_matricula_row(total="100")]
+    baseline = [_matricula_row(ingreso_examen=100)]
+    new_rows = [_matricula_row(ingreso_examen="100")]
 
     result = compare_upload_with_baseline(new_rows, baseline, "matricula")
 
@@ -56,8 +57,8 @@ def test_compare_normalizes_numeric_formats() -> None:
 
 
 def test_compare_truncates_detail_lists() -> None:
-    baseline = [_matricula_row(programa_educativo=f"Programa {i}", total=i) for i in range(60)]
-    new_rows = [_matricula_row(programa_educativo=f"Nuevo {i}", total=i) for i in range(60)]
+    baseline = [_matricula_row(programa_educativo=f"Programa {i}", ingreso_examen=i) for i in range(60)]
+    new_rows = [_matricula_row(programa_educativo=f"Nuevo {i}", ingreso_examen=i) for i in range(60)]
 
     result = compare_upload_with_baseline(new_rows, baseline, "matricula", detail_limit=10)
 

@@ -107,10 +107,11 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
         description="Inscripcion total y nuevo ingreso por programa, cuatrimestre y ciclo.",
         fields=(
             DatasetField("ciclo_escolar", "string"),
-            DatasetField("cuatrimestre", "int"),
+            DatasetField("cuatrimestre", "int", min_value=0, max_value=3),
             DatasetField("programa_educativo", "string"),
-            DatasetField("total", "int"),
-            DatasetField("nuevo_ingreso", "int"),
+            DatasetField("ingreso_examen", "int", description="Alumnos de nuevo ingreso admitidos por examen."),
+            DatasetField("ingreso_pase_directo", "int", description="Alumnos de nuevo ingreso admitidos por pase directo."),
+            DatasetField("ingreso_renoes", "int", description="Alumnos de nuevo ingreso admitidos por RENOES."),
             DatasetField("bajas_reprobacion", "int"),
             DatasetField("bajas_desercion", "int"),
             DatasetField("hombres", "int"),
@@ -124,7 +125,7 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
         description="Promedio general del programa educativo y numero de PE evaluados.",
         fields=(
             DatasetField("ciclo_escolar", "string"),
-            DatasetField("cuatrimestre", "int"),
+            DatasetField("cuatrimestre", "int", min_value=0, max_value=3),
             DatasetField("programa_educativo", "string"),
             DatasetField("promedio_pe", "float"),
             DatasetField("num_pe", "int"),

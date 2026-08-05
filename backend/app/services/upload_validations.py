@@ -9,10 +9,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, and_, func, or_, select
 
 from app.models.ciclo_generacional import CicloGeneracional
 from app.models.matricula import Matricula
+from app.services.formulas import calculate_matricula_actual
 
 # Dataset -> campo que representa su "ciclo" para efectos del catalogo.
 CICLO_FIELD_BY_DATASET: dict[str, str] = {
@@ -152,3 +153,109 @@ def mujeres_keys_from_rows(rows: list[dict[str, Any]]) -> set[tuple[Any, Any, An
         for r in rows
         if r.get("subsistema_id") and r.get("ciclo_escolar") and r.get("programa_educativo")
     }
+
+
+# ---------------------------------------------------------------------------
+# Matricula: nuevo_ingreso calculado + arrastre de "total" desde el cuatrimestre anterior.
+#
+# El formulario ya no captura "total" (base de la Matricula Actual) ni "nuevo_ingreso" (un solo
+# numero): en vez de eso se capturan Examen/Pase Directo/RENOES, y "total" se materializa aqui
+# como la Matricula Actual ya calculada del periodo inmediatamente anterior de esa misma
+# carrera (0 si es la primera vez que se captura). Se materializa en vez de derivarse en cada
+# consulta porque "total" tambien se usa directamente (sumado) en calcular_rendimiento() y
+# calcular_indicadores_opcionales() (reprobacion/desercion/cobertura), no solo en
+# calculate_matricula_actual().
+# ---------------------------------------------------------------------------
+
+
+def _group_matricula_rows_for_carry_forward(
+    rows: list[dict[str, Any]]
+) -> dict[tuple[Any, Any], list[dict[str, Any]]]:
+    """Agrupa filas de matricula por (subsistema_id, programa_educativo) y las ordena
+    cronologicamente (ciclo_escolar, cuatrimestre) dentro de cada grupo."""
+    groups: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
+    for row in rows:
+        key = (row.get("subsistema_id"), row.get("programa_educativo"))
+        groups.setdefault(key, []).append(row)
+    for group_rows in groups.values():
+        group_rows.sort(key=lambda r: (str(r.get("ciclo_escolar")), int(r.get("cuatrimestre") or 0)))
+    return groups
+
+
+def matricula_carry_forward_lookups(
+    rows: list[dict[str, Any]]
+) -> dict[tuple[Any, Any], tuple[str, int]]:
+    """Para cada grupo (subsistema_id, programa_educativo) del lote, el periodo mas antiguo
+    presente — es el punto de referencia para buscar en BD la Matricula Actual inmediatamente
+    anterior (una sola consulta por grupo, no por fila)."""
+    groups = _group_matricula_rows_for_carry_forward(rows)
+    return {
+        key: (str(group_rows[0].get("ciclo_escolar")), int(group_rows[0].get("cuatrimestre") or 0))
+        for key, group_rows in groups.items()
+    }
+
+
+def build_previous_matricula_stmt(
+    subsistema_id: Any, programa_educativo: Any, ciclo_escolar: str, cuatrimestre: int
+) -> Select:
+    """Statement con total/bajas/nuevo_ingreso de la fila de Matricula mas reciente,
+    estrictamente anterior a (ciclo_escolar, cuatrimestre), para esa carrera."""
+    return (
+        select(
+            Matricula.total,
+            Matricula.bajas_reprobacion,
+            Matricula.bajas_desercion,
+            Matricula.nuevo_ingreso,
+        )
+        .where(
+            Matricula.subsistema_id == subsistema_id,
+            Matricula.programa_educativo == programa_educativo,
+            or_(
+                Matricula.ciclo_escolar < ciclo_escolar,
+                and_(Matricula.ciclo_escolar == ciclo_escolar, Matricula.cuatrimestre < cuatrimestre),
+            ),
+        )
+        .order_by(Matricula.ciclo_escolar.desc(), Matricula.cuatrimestre.desc())
+        .limit(1)
+    )
+
+
+def apply_matricula_carry_forward(
+    rows: list[dict[str, Any]],
+    previous_by_key: dict[tuple[Any, Any], dict[str, int] | None],
+) -> None:
+    """Calcula, en orden cronologico dentro de cada grupo (subsistema_id, programa_educativo):
+    - "nuevo_ingreso" = ingreso_examen + ingreso_pase_directo + ingreso_renoes
+    - "total" = Matricula Actual del periodo anterior (0 si no existe periodo anterior)
+
+    Modifica `rows` in-place agregando esas dos claves. `previous_by_key` trae, por grupo, los
+    campos de la fila de BD inmediatamente anterior (o None si es la primera captura de esa
+    carrera) obtenidos via build_previous_matricula_stmt.
+    """
+    groups = _group_matricula_rows_for_carry_forward(rows)
+    for key, group_rows in groups.items():
+        previous = previous_by_key.get(key)
+        last_known_total = (
+            calculate_matricula_actual(
+                previous["total"],
+                previous["bajas_reprobacion"],
+                previous["bajas_desercion"],
+                previous["nuevo_ingreso"],
+            )
+            if previous
+            else 0
+        )
+        for row in group_rows:
+            nuevo_ingreso = (
+                int(row.get("ingreso_examen") or 0)
+                + int(row.get("ingreso_pase_directo") or 0)
+                + int(row.get("ingreso_renoes") or 0)
+            )
+            row["nuevo_ingreso"] = nuevo_ingreso
+            row["total"] = last_known_total
+            last_known_total = calculate_matricula_actual(
+                last_known_total,
+                int(row.get("bajas_reprobacion") or 0),
+                int(row.get("bajas_desercion") or 0),
+                nuevo_ingreso,
+            )

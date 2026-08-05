@@ -10,6 +10,7 @@ from slowapi.util import get_remote_address
 from app.api.routes import (
     audit,
     auth,
+    bajas,
     caracterizacion,
     ciclos,
     docentes,
@@ -72,6 +73,7 @@ app.include_router(ciclos.router, prefix=f"{prefix}/ciclos", tags=["ciclos"])
 app.include_router(suggestions.router, prefix=f"{prefix}/suggestions", tags=["suggestions"])
 app.include_router(uploads.router, prefix=f"{prefix}/uploads", tags=["uploads"])
 app.include_router(matricula.router, prefix=f"{prefix}/matricula", tags=["matricula"])
+app.include_router(bajas.router, prefix=f"{prefix}/bajas", tags=["bajas"])
 app.include_router(caracterizacion.router, prefix=f"{prefix}/caracterizacion", tags=["caracterizacion"])
 app.include_router(rendimiento.router, prefix=f"{prefix}/rendimiento", tags=["rendimiento"])
 app.include_router(eficiencia.router, prefix=f"{prefix}/eficiencia", tags=["eficiencia"])

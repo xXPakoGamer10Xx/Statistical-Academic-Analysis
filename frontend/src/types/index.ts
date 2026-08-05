@@ -158,6 +158,17 @@ export interface EvaluacionDocenteResumen {
   promedio_institucional: number | null;
 }
 
+export interface BajasPunto {
+  programa_educativo: string;
+  bajas_reprobacion: number;
+  bajas_desercion: number;
+}
+
+export interface BajasResumen {
+  por_carrera: BajasPunto[];
+  totales: BajasPunto;
+}
+
 // ---------------------------------------------------------------------------
 // Tipos del wizard de upload inteligente
 // ---------------------------------------------------------------------------

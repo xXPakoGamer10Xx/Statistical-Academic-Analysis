@@ -14,8 +14,16 @@ import {
   X,
   ClipboardList,
   CalendarDays,
+  UserMinus,
+  PanelLeft,
+  Sun,
+  Moon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useDarkMode } from "@/hooks/useDarkMode";
+import { useUiPreferencesStore } from "@/stores/uiPreferences";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +39,7 @@ const NAV_ITEMS = [
   { to: "/matricula", label: "Estadística de matrícula", icon: Users, allowedRoles: null },
   { to: "/caracterizacion", label: "Caracterización", icon: HeartHandshake, allowedRoles: null },
   { to: "/rendimiento", label: "Rendimiento", icon: BookOpen, allowedRoles: null },
+  { to: "/bajas", label: "Bajas", icon: UserMinus, allowedRoles: null },
   { to: "/eficiencia", label: "Eficiencia", icon: GraduationCap, allowedRoles: null },
   { to: "/docentes", label: "Eval. Docente", icon: UserCheck, allowedRoles: null },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, allowedRoles: ["admin_escolar", "admin_general"] },
@@ -38,10 +47,52 @@ const NAV_ITEMS = [
   { to: "/admin/auditoria", label: "Auditoría", icon: ClipboardList, allowedRoles: ["admin_general"] },
 ];
 
+/** Botones de preferencia (estilo de navbar + tema) reutilizados en el dock, el sidebar
+ * y el menu movil, sin construir una pantalla de configuracion aparte. `labeled` los
+ * muestra como filas icono+texto (sidebar expandido); si no, son botones cuadrados. */
+function PreferenceToggles({
+  className,
+  variant = "light",
+  labeled = false,
+}: {
+  className?: string;
+  variant?: "light" | "dark";
+  labeled?: boolean;
+}) {
+  const navStyle = useUiPreferencesStore((s) => s.navStyle);
+  const toggleNavStyle = useUiPreferencesStore((s) => s.toggleNavStyle);
+  const setTheme = useUiPreferencesStore((s) => s.setTheme);
+  const isDark = useDarkMode();
+
+  const btnClass = cn(
+    "flex h-10 items-center rounded-xl transition-colors",
+    labeled ? "w-full gap-3 px-3" : "w-10 justify-center",
+    variant === "dark"
+      ? "text-slate-400 hover:text-white hover:bg-white/5"
+      : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800",
+  );
+
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      <button type="button" onClick={toggleNavStyle} title={navStyle === "dock" ? "Cambiar a menú lateral" : "Cambiar a menú flotante"} className={btnClass}>
+        <PanelLeft className="h-5 w-5 shrink-0" />
+        {labeled && <span className="text-sm font-medium">{navStyle === "dock" ? "Menú lateral" : "Menú flotante"}</span>}
+      </button>
+      <button type="button" onClick={() => setTheme(isDark ? "light" : "dark")} title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"} className={btnClass}>
+        {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
+        {labeled && <span className="text-sm font-medium">{isDark ? "Modo claro" : "Modo oscuro"}</span>}
+      </button>
+    </div>
+  );
+}
+
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const navStyle = useUiPreferencesStore((s) => s.navStyle);
+  const sidebarCollapsed = useUiPreferencesStore((s) => s.sidebarCollapsed);
+  const toggleSidebarCollapsed = useUiPreferencesStore((s) => s.toggleSidebarCollapsed);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const userRole = user?.role ?? "viewer";
@@ -129,7 +180,8 @@ export function Layout() {
           );
         })}
       </nav>
-      <div className="border-t border-white/5 p-4 shrink-0">
+      <div className="border-t border-white/5 p-4 shrink-0 space-y-2">
+        <PreferenceToggles variant="dark" />
         <button
           onClick={onLogout}
           className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
@@ -184,7 +236,7 @@ export function Layout() {
         </button>
       </div>
 
-      {[{ display: true, key: 'top', yHidden: -100, posClass: 'top-4', isVisible: isVisibleTop }, { display: true, key: 'bottom', yHidden: 100, posClass: 'bottom-4', isVisible: isVisibleBottom }].map((dock) => (
+      {navStyle === "dock" && [{ display: true, key: 'top', yHidden: -100, posClass: 'top-4', isVisible: isVisibleTop }, { display: true, key: 'bottom', yHidden: 100, posClass: 'bottom-4', isVisible: isVisibleBottom }].map((dock) => (
         <motion.div 
           key={dock.key}
           initial={false}
@@ -259,6 +311,8 @@ export function Layout() {
                 </AnimatePresence>
               </button>
 
+              <PreferenceToggles className="gap-1" />
+
               <button
                 onClick={onLogout}
                 onMouseEnter={() => setHoveredItem(`logout-${dock.key}`)}
@@ -285,16 +339,118 @@ export function Layout() {
         </motion.div>
       ))}
 
-      <main 
+      {navStyle === "sidebar" && (
+        <aside
+          className={cn(
+            "hidden md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:flex-col border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md transition-[width] duration-200",
+            sidebarCollapsed ? "md:w-20" : "md:w-64",
+          )}
+        >
+          <div className={cn("flex h-20 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800", sidebarCollapsed ? "justify-center" : "px-4")}>
+            <NavLink to="/" end className="block shrink-0">
+              <Logo className="h-10 w-auto" />
+            </NavLink>
+            {!sidebarCollapsed && (
+              <span className="truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">Análisis Stats</span>
+            )}
+          </div>
+
+          <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar py-4">
+            {NAV_ITEMS.filter((i) => !i.allowedRoles || i.allowedRoles.includes(userRole)).map((item) => {
+              const isActive = item.to === "/"
+                ? location.pathname === "/"
+                : location.pathname.startsWith(item.to);
+              return (
+                <div key={item.to} className="group relative px-2">
+                  <NavLink
+                    to={item.to}
+                    end={item.to === "/"}
+                    className={cn(
+                      "flex h-11 items-center rounded-xl transition-colors",
+                      sidebarCollapsed ? "mx-auto w-11 justify-center" : "gap-3 px-3",
+                      isActive
+                        ? "bg-slate-200 dark:bg-slate-800 text-brand-600 dark:text-brand-400"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white",
+                    )}
+                  >
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    {!sidebarCollapsed && <span className="truncate text-sm font-medium">{item.label}</span>}
+                  </NavLink>
+                  {sidebarCollapsed && (
+                    <div className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                      {item.label}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className="shrink-0 border-t border-slate-200 dark:border-slate-800 p-3">
+            <button
+              type="button"
+              onClick={toggleSidebarCollapsed}
+              title={sidebarCollapsed ? "Mostrar menú" : "Ocultar menú"}
+              className={cn(
+                "mb-2 flex h-10 items-center rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors",
+                sidebarCollapsed ? "w-full justify-center" : "w-full gap-3 px-3",
+              )}
+            >
+              {sidebarCollapsed ? <ChevronRight className="h-5 w-5 shrink-0" /> : <ChevronLeft className="h-5 w-5 shrink-0" />}
+              {!sidebarCollapsed && <span className="text-sm font-medium">Ocultar menú</span>}
+            </button>
+
+            <div className={cn("flex items-center gap-2 mb-2", sidebarCollapsed ? "flex-col" : "px-1")}>
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold"
+                title={`${user?.full_name ?? ""} · ${ROLE_LABELS[userRole] ?? userRole}`}
+              >
+                {user?.full_name?.charAt(0).toUpperCase() || "U"}
+              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{user?.full_name}</p>
+                  <p className="truncate text-xs text-slate-400">{ROLE_LABELS[userRole] ?? userRole}</p>
+                </div>
+              )}
+            </div>
+
+            <div className={cn(sidebarCollapsed ? "flex flex-col items-center gap-1" : "space-y-1")}>
+              <PreferenceToggles
+                className={sidebarCollapsed ? "flex-col gap-1" : "flex-col gap-1 w-full items-stretch"}
+                labeled={!sidebarCollapsed}
+              />
+              <button
+                onClick={onLogout}
+                title="Cerrar sesión"
+                className={cn(
+                  "flex h-10 items-center rounded-xl text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/20 transition-colors",
+                  sidebarCollapsed ? "w-10 justify-center" : "w-full gap-3 px-3",
+                )}
+              >
+                <LogOut className="h-5 w-5 shrink-0" />
+                {!sidebarCollapsed && <span className="text-sm font-medium">Cerrar sesión</span>}
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      <main
         ref={mainRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col md:pt-24 md:pb-24 mt-0"
+        className={cn(
+          "flex-1 overflow-y-auto relative custom-scrollbar flex flex-col mt-0 transition-[padding] duration-200",
+          navStyle === "dock" ? "md:pt-24 md:pb-24" : sidebarCollapsed ? "md:pl-20" : "md:pl-64",
+        )}
       >
-        <div className="hidden md:block absolute top-4 left-6 z-10">
-          <NavLink to="/" end className="block w-fit">
-            <Logo className="h-20 w-auto" />
-          </NavLink>
-        </div>
+        {navStyle === "dock" && (
+          <div className="hidden md:block absolute top-4 left-6 z-10">
+            <NavLink to="/" end className="block w-fit">
+              <Logo className="h-20 w-auto" />
+            </NavLink>
+          </div>
+        )}
         <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div

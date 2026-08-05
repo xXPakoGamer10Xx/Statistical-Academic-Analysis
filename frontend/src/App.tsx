@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { Bajas } from "@/pages/Bajas";
 import { Caracterizacion } from "@/pages/Caracterizacion";
 import { Cargas } from "@/pages/Cargas";
 import { Dashboard } from "@/pages/Dashboard";
@@ -23,6 +24,7 @@ export function App() {
           <Route path="matricula" element={<Matricula />} />
           <Route path="caracterizacion" element={<Caracterizacion />} />
           <Route path="rendimiento" element={<Rendimiento />} />
+          <Route path="bajas" element={<Bajas />} />
           <Route path="eficiencia" element={<Eficiencia />} />
           <Route path="docentes" element={<Docentes />} />
           {/* Admin escolar y general pueden subir archivos / captura manual */}

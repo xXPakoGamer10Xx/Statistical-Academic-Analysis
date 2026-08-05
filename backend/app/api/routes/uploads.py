@@ -36,10 +36,13 @@ from app.services.upload_diff import (
     load_baseline_rows,
 )
 from app.services.upload_validations import (
+    apply_matricula_carry_forward,
     build_mujeres_matriculadas_stmt,
+    build_previous_matricula_stmt,
     build_valid_ciclos_stmt,
     check_ciclo_catalog,
     check_madres_solteras,
+    matricula_carry_forward_lookups,
     mujeres_keys_from_rows,
 )
 from app.workers.tasks import CATEGORIA_BY_DATASET, DEDUP_KEYS, MODEL_BY_TYPE, process_csv_upload
@@ -309,6 +312,24 @@ async def _apply_db_validations(
         rows, madres_errors = check_madres_solteras(rows, mujeres_by_key)
         all_errors.extend(madres_errors)
 
+    if dataset_type == "matricula" and rows:
+        lookups = matricula_carry_forward_lookups(rows)
+        previous_by_key: dict[tuple, dict[str, int] | None] = {}
+        for (subsistema_id, programa_educativo), (ciclo_escolar, cuatrimestre) in lookups.items():
+            stmt = build_previous_matricula_stmt(subsistema_id, programa_educativo, ciclo_escolar, cuatrimestre)
+            previous_row = (await db.execute(stmt)).first()
+            previous_by_key[(subsistema_id, programa_educativo)] = (
+                {
+                    "total": previous_row.total,
+                    "bajas_reprobacion": previous_row.bajas_reprobacion,
+                    "bajas_desercion": previous_row.bajas_desercion,
+                    "nuevo_ingreso": previous_row.nuevo_ingreso,
+                }
+                if previous_row is not None
+                else None
+            )
+        apply_matricula_carry_forward(rows, previous_by_key)
+
     return rows, all_errors
 
 
@@ -320,7 +341,8 @@ def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
         stmt = stmt.on_conflict_do_update(
             constraint="uq_matricula_periodo",
             set_={c: stmt.excluded[c] for c in [
-                "total", "nuevo_ingreso", "bajas_reprobacion", "bajas_desercion",
+                "total", "nuevo_ingreso", "ingreso_examen", "ingreso_pase_directo", "ingreso_renoes",
+                "bajas_reprobacion", "bajas_desercion",
                 "hombres", "mujeres", "poblacion_edad_escolar", "egresados_nms",
             ] if c in rows[0]},
         )

@@ -345,16 +345,24 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                           </datalist>
                         </td>
                         <td className="px-1 py-1.5">
-                          <Input
-                            list={programaListId}
-                            value={row.programa_educativo ?? ""}
-                            onChange={(e) => setCell(rowIdx, "programa_educativo", e.target.value)}
-                            placeholder="Elige o escribe…"
-                            className="min-w-[160px]"
-                          />
-                          <datalist id={programaListId}>
-                            {programaSugerencias?.map((v) => <option key={v} value={v} />)}
-                          </datalist>
+                          {programaSugerencias && programaSugerencias.length > 0 ? (
+                            <Select
+                              value={row.programa_educativo ?? ""}
+                              onChange={(e) => setCell(rowIdx, "programa_educativo", e.target.value)}
+                              className="min-w-[160px]"
+                            >
+                              <option value="">—</option>
+                              {programaSugerencias.map((v) => <option key={v} value={v}>{v}</option>)}
+                            </Select>
+                          ) : (
+                            <Input
+                              list={programaListId}
+                              value={row.programa_educativo ?? ""}
+                              onChange={(e) => setCell(rowIdx, "programa_educativo", e.target.value)}
+                              placeholder="Escribe la carrera…"
+                              className="min-w-[160px]"
+                            />
+                          )}
                         </td>
                         <td className="px-1 py-1.5">
                           <Input
@@ -425,12 +433,18 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                             ) : f.name === "cuatrimestre" ? (
                               <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
                                 <option value="">—</option>
-                                {[1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
+                                {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
                               </Select>
                             ) : f.name === "sexo" && datasetType === "becas" && row.tipo?.trim().toLowerCase() === MADRES_SOLTERAS ? (
                               // "Madres solteras" solo aplica a mujeres: sin opcion de eleccion.
                               <Select value="Mujer" disabled onChange={() => {}}>
                                 <option value="Mujer">Mujer</option>
+                              </Select>
+                            ) : f.name === "programa_educativo" && programaSugerencias && programaSugerencias.length > 0 ? (
+                              // Carrera: desplegable estricto con las carreras ya existentes en el sistema.
+                              <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>
+                                <option value="">—</option>
+                                {programaSugerencias.map((v) => <option key={v} value={v}>{v}</option>)}
                               </Select>
                             ) : f.allowed_values && f.allowed_values.length > 0 ? (
                               <Select value={row[f.name] ?? ""} onChange={(e) => setCell(rowIdx, f.name, e.target.value)}>

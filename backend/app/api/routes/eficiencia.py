@@ -14,6 +14,7 @@ async def get_eficiencia(
     subsistema_id: int | None = Query(None),
     generaciones: list[str] | None = Query(None, description="Hasta 3 generaciones"),
     programa_educativo: str | None = Query(None),
+    agrupar_por_programa: bool = Query(False, description="Desglosa por carrera en vez de agregar todos los programas"),
 ) -> EficienciaResumen:
     if generaciones and len(generaciones) > 3:
         raise HTTPException(400, "Máximo 3 generaciones por consulta (RF-06)")
@@ -23,4 +24,5 @@ async def get_eficiencia(
         subsistema_id=sid,
         generaciones=generaciones,
         programa_educativo=programa_educativo,
+        agrupar_por_programa=agrupar_por_programa,
     )
