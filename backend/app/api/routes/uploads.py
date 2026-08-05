@@ -341,7 +341,7 @@ def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
         stmt = stmt.on_conflict_do_update(
             constraint="uq_matricula_periodo",
             set_={c: stmt.excluded[c] for c in [
-                "total", "nuevo_ingreso", "ingreso_examen", "ingreso_pase_directo", "ingreso_renoes",
+                "total", "nuevo_ingreso", "ingreso_examen", "ingreso_pase_directo", "ingreso_renoes", "ingreso_uaem_gem",
                 "bajas_reprobacion", "bajas_desercion",
                 "hombres", "mujeres", "poblacion_edad_escolar", "egresados_nms",
             ] if c in rows[0]},

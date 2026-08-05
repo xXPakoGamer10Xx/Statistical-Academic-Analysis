@@ -120,7 +120,7 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
     "nuevo_ingreso": DatasetDefinition(
         key="nuevo_ingreso",
         label="Nuevo Ingreso",
-        description="Alumnos de nuevo ingreso por tipo de admision (examen, pase directo, RENOES), por programa, cuatrimestre y ciclo.",
+        description="Alumnos de nuevo ingreso por tipo de admision (examen, pase directo, RENOES, UAEM-GEM), por programa, cuatrimestre y ciclo.",
         fields=(
             DatasetField("ciclo_escolar", "string"),
             DatasetField("cuatrimestre", "int", min_value=0, max_value=10),
@@ -128,6 +128,7 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             DatasetField("ingreso_examen", "int", description="Alumnos de nuevo ingreso admitidos por examen."),
             DatasetField("ingreso_pase_directo", "int", description="Alumnos de nuevo ingreso admitidos por pase directo."),
             DatasetField("ingreso_renoes", "int", description="Alumnos de nuevo ingreso admitidos por RENOES."),
+            DatasetField("ingreso_uaem_gem", "int", description="Alumnos de nuevo ingreso admitidos por convenio UAEM-GEM."),
         ),
     ),
     "evaluacion_academica": DatasetDefinition(
@@ -162,8 +163,8 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             DatasetField(
                 "puesto",
                 "string",
-                allowed_values=("P.A.", "P.C."),
-                description="Puesto del docente. Valores permitidos: P.A. (Profesor de Asignatura) o P.C. (Profesor de Carrera).",
+                allowed_values=("P.A.", "P.T.C."),
+                description="Puesto del docente. Valores permitidos: P.A. (Profesor de Asignatura) o P.T.C. (Profesor de Tiempo Completo).",
             ),
             DatasetField("docente_nombre", "string"),
             DatasetField("programa_educativo", "string"),

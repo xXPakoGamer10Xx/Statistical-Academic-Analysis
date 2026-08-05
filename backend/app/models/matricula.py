@@ -31,6 +31,7 @@ class Matricula(Base):
     ingreso_examen: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ingreso_pase_directo: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ingreso_renoes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ingreso_uaem_gem: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bajas_reprobacion: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bajas_desercion: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     hombres: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -227,10 +227,11 @@ def apply_matricula_carry_forward(
     previous_by_key: dict[tuple[Any, Any], dict[str, int] | None],
 ) -> None:
     """Calcula, en orden cronologico dentro de cada grupo (subsistema_id, programa_educativo):
-    - "nuevo_ingreso" = ingreso_examen + ingreso_pase_directo + ingreso_renoes — solo se agrega
-      (y por lo tanto solo se persiste) cuando la fila trae al menos uno de esos 3 campos, es
-      decir, cuando viene del dataset "nuevo_ingreso". Una captura de "matricula" (que ya no
-      trae esos campos) no debe pisar a 0 el nuevo_ingreso ya capturado para ese periodo.
+    - "nuevo_ingreso" = ingreso_examen + ingreso_pase_directo + ingreso_renoes + ingreso_uaem_gem
+      — solo se agrega (y por lo tanto solo se persiste) cuando la fila trae al menos uno de
+      esos 4 campos, es decir, cuando viene del dataset "nuevo_ingreso". Una captura de
+      "matricula" (que ya no trae esos campos) no debe pisar a 0 el nuevo_ingreso ya capturado
+      para ese periodo.
     - "total" = Matricula Actual del periodo anterior (0 si no existe periodo anterior) —
       se calcula siempre, para ambos datasets ("matricula" y "nuevo_ingreso" comparten la
       misma fila por periodo/carrera), de forma determinista/idempotente.
@@ -239,7 +240,7 @@ def apply_matricula_carry_forward(
     campos de la fila de BD inmediatamente anterior (o None si es la primera captura de esa
     carrera) obtenidos via build_previous_matricula_stmt.
     """
-    ingreso_fields = ("ingreso_examen", "ingreso_pase_directo", "ingreso_renoes")
+    ingreso_fields = ("ingreso_examen", "ingreso_pase_directo", "ingreso_renoes", "ingreso_uaem_gem")
     groups = _group_matricula_rows_for_carry_forward(rows)
     for key, group_rows in groups.items():
         previous = previous_by_key.get(key)
@@ -259,6 +260,7 @@ def apply_matricula_carry_forward(
                 int(row.get("ingreso_examen") or 0)
                 + int(row.get("ingreso_pase_directo") or 0)
                 + int(row.get("ingreso_renoes") or 0)
+                + int(row.get("ingreso_uaem_gem") or 0)
                 if has_ingreso_fields
                 else 0
             )

@@ -54,9 +54,9 @@ def test_parse_and_validate_rejects_negative_numbers(tmp_path: Path) -> None:
 def test_parse_and_validate_nuevo_ingreso_dataset(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,cuatrimestre,programa_educativo,ingreso_examen,ingreso_pase_directo,ingreso_renoes",
-            "2025-2026,1,Ingenieria,15,4,1",
-            "2025-2026,2,Administracion,-8,2,0",
+            "ciclo_escolar,cuatrimestre,programa_educativo,ingreso_examen,ingreso_pase_directo,ingreso_renoes,ingreso_uaem_gem",
+            "2025-2026,1,Ingenieria,15,4,1,2",
+            "2025-2026,2,Administracion,-8,2,0,1",
         ]
     )
     file_path = tmp_path / "nuevo_ingreso.csv"
@@ -101,7 +101,7 @@ def test_parse_and_validate_normalizes_allowed_values(tmp_path: Path) -> None:
         [
             "ciclo_escolar,puesto,docente_nombre,programa_educativo,evaluador_tipo,puntaje",
             "2025-2026,p.a.,Ana Perez,Ingenieria,ALUMNO,9.5",
-            "2025-2026,P.C.,Luis Perez,Ingenieria,Coordinador,9",
+            "2025-2026,P.T.C.,Luis Perez,Ingenieria,Coordinador,9",
         ]
     )
     file_path = tmp_path / "docentes.csv"
