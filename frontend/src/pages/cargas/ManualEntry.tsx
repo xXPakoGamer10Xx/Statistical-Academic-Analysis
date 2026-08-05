@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { Plus, Trash2, Save, ClipboardList } from "lucide-react";
-import { ciclosApi, indicadoresApi, suggestionsApi, uploadsApi } from "@/api/endpoints";
+import { carrerasApi, ciclosApi, indicadoresApi, suggestionsApi, uploadsApi } from "@/api/endpoints";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -133,12 +133,16 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
     [generacionesCatalogo],
   );
 
-  // Sugerencias (catalogo NO estricto) de valores ya existentes en BD.
-  const { data: programaSugerencias } = useQuery({
-    queryKey: ["suggestions", "programa_educativo", effectiveSubsistemaId],
-    queryFn: () => suggestionsApi.list("programa_educativo", effectiveSubsistemaId),
+  // Catalogo administrable de carreras (reemplaza la lista de sugerencias NO estricta).
+  const { data: carrerasCatalogo } = useQuery({
+    queryKey: ["carreras", effectiveSubsistemaId],
+    queryFn: () => carrerasApi.list({ subsistema_id: effectiveSubsistemaId }),
     enabled: hasProgramaField && effectiveSubsistemaId !== undefined,
   });
+  const programaSugerencias = useMemo(
+    () => carrerasCatalogo?.filter((c) => c.activo).map((c) => c.nombre),
+    [carrerasCatalogo],
+  );
   const { data: docenteSugerencias } = useQuery({
     queryKey: ["suggestions", "docente_nombre", effectiveSubsistemaId],
     queryFn: () => suggestionsApi.list("docente_nombre", effectiveSubsistemaId),

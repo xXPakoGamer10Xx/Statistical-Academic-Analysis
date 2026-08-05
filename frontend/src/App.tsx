@@ -11,6 +11,7 @@ import { Login } from "@/pages/Login";
 import { Matricula } from "@/pages/Matricula";
 import { Rendimiento } from "@/pages/Rendimiento";
 import { AuditLog } from "@/pages/admin/AuditLog";
+import { Carreras } from "@/pages/admin/Carreras";
 import { Ciclos } from "@/pages/admin/Ciclos";
 import { Usuarios } from "@/pages/admin/Usuarios";
 
@@ -31,9 +32,10 @@ export function App() {
           <Route element={<ProtectedRoute allowedRoles={["admin_escolar", "admin_general"]} />}>
             <Route path="cargas" element={<Cargas />} />
           </Route>
-          {/* Admin escolar y general gestionan usuarios */}
+          {/* Admin escolar y general gestionan usuarios y el catálogo de carreras */}
           <Route element={<ProtectedRoute allowedRoles={["admin_escolar", "admin_general"]} />}>
             <Route path="admin/usuarios" element={<Usuarios />} />
+            <Route path="admin/carreras" element={<Carreras />} />
           </Route>
           {/* Solo admin general ve la bitácora y gestiona el catálogo de ciclos */}
           <Route element={<ProtectedRoute allowedRoles={["admin_general"]} />}>

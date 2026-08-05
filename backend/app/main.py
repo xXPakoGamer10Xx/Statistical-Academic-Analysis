@@ -12,6 +12,7 @@ from app.api.routes import (
     auth,
     bajas,
     caracterizacion,
+    carreras,
     ciclos,
     docentes,
     eficiencia,
@@ -70,6 +71,7 @@ app.include_router(auth.router, prefix=f"{prefix}/auth", tags=["auth"])
 app.include_router(users.router, prefix=f"{prefix}/users", tags=["users"])
 app.include_router(subsistemas.router, prefix=f"{prefix}/subsistemas", tags=["subsistemas"])
 app.include_router(ciclos.router, prefix=f"{prefix}/ciclos", tags=["ciclos"])
+app.include_router(carreras.router, prefix=f"{prefix}/carreras", tags=["carreras"])
 app.include_router(suggestions.router, prefix=f"{prefix}/suggestions", tags=["suggestions"])
 app.include_router(uploads.router, prefix=f"{prefix}/uploads", tags=["uploads"])
 app.include_router(matricula.router, prefix=f"{prefix}/matricula", tags=["matricula"])

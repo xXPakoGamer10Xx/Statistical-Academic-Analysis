@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
-import { ciclosApi, subsistemasApi, suggestionsApi } from "@/api/endpoints";
+import { carrerasApi, ciclosApi, subsistemasApi } from "@/api/endpoints";
 import { useAuth } from "@/hooks/useAuth";
 import { useFilters } from "@/stores/filters";
 
@@ -28,10 +28,10 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
     enabled: isAdminGeneral,
   });
 
-  // Carreras ya existentes (desplegable estricto, ya no se busca por texto libre).
-  const { data: programas } = useQuery({
-    queryKey: ["suggestions", "programa_educativo", effectiveSubsistemaId],
-    queryFn: () => suggestionsApi.list("programa_educativo", effectiveSubsistemaId),
+  // Catalogo administrable de carreras (reemplaza la lista de sugerencias NO estricta).
+  const { data: carreras } = useQuery({
+    queryKey: ["carreras", effectiveSubsistemaId],
+    queryFn: () => carrerasApi.list(effectiveSubsistemaId ? { subsistema_id: effectiveSubsistemaId } : undefined),
     enabled: showPrograma,
   });
 
@@ -112,8 +112,10 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
             onChange={(e) => filters.set({ programa_educativo: e.target.value || undefined })}
           >
             <option value="">Todas las carreras</option>
-            {programas?.map((p) => (
-              <option key={p} value={p}>{p}</option>
+            {carreras?.map((c) => (
+              <option key={c.id} value={c.nombre}>
+                {c.nombre}{!c.activo ? " (deshabilitada)" : ""}
+              </option>
             ))}
           </Select>
         </div>

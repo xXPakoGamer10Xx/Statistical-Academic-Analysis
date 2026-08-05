@@ -2,6 +2,7 @@ import { api } from "./client";
 import type {
   BajasResumen,
   CaracterizacionResumen,
+  Carrera,
   Ciclo,
   EficienciaResumen,
   EvaluacionDocenteResumen,
@@ -78,6 +79,15 @@ export const ciclosApi = {
     api.post<Ciclo>("/ciclos", payload).then((r) => r.data),
   update: (id: number, patch: { activo: boolean }) =>
     api.patch<Ciclo>(`/ciclos/${id}`, patch).then((r) => r.data),
+};
+
+export const carrerasApi = {
+  list: (params?: { subsistema_id?: number }) =>
+    api.get<Carrera[]>("/carreras", { params }).then((r) => r.data),
+  create: (payload: { subsistema_id: number; nombre: string; nivel: "tsu" | "profesional"; carrera_par_id?: number | null }) =>
+    api.post<Carrera>("/carreras", payload).then((r) => r.data),
+  update: (id: number, patch: { activo?: boolean; carrera_par_id?: number | null }) =>
+    api.patch<Carrera>(`/carreras/${id}`, patch).then((r) => r.data),
 };
 
 export const suggestionsApi = {

@@ -20,6 +20,7 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
+  Layers,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { to: "/eficiencia", label: "Eficiencia", icon: GraduationCap, allowedRoles: null },
   { to: "/docentes", label: "Eval. Docente", icon: UserCheck, allowedRoles: null },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, allowedRoles: ["admin_escolar", "admin_general"] },
+  { to: "/admin/carreras", label: "Carreras", icon: Layers, allowedRoles: ["admin_escolar", "admin_general"] },
   { to: "/admin/ciclos", label: "Ciclos", icon: CalendarDays, allowedRoles: ["admin_general"] },
   { to: "/admin/auditoria", label: "Auditoría", icon: ClipboardList, allowedRoles: ["admin_general"] },
 ];

@@ -101,6 +101,17 @@ export interface Ciclo {
   created_at: string;
 }
 
+/** Catalogo administrable de carreras (programa_educativo) por escuela, con TSU emparejado. */
+export interface Carrera {
+  id: number;
+  subsistema_id: number;
+  nombre: string;
+  nivel: "tsu" | "profesional";
+  carrera_par_id: number | null;
+  activo: boolean;
+  created_at: string;
+}
+
 export interface MatriculaPunto {
   ciclo_escolar: string;
   cuatrimestre: number;
