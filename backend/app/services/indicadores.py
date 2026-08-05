@@ -112,11 +112,15 @@ async def calcular_rendimiento(
     )
     aprov_rows = (await db.execute(aprov_query)).all()
 
-    # Reprobación y deserción se calculan desde matrícula
+    # Reprobación y deserción se calculan desde matrícula. El denominador es la Matrícula
+    # Actual (total - bajas + nuevo_ingreso), no el "total" crudo (que es la base arrastrada
+    # del cuatrimestre anterior, previa al ajuste de ese mismo periodo).
     mat_query = select(
         Matricula.ciclo_escolar,
         Matricula.programa_educativo,
-        func.sum(Matricula.total).label("total"),
+        func.sum(
+            Matricula.total - Matricula.bajas_reprobacion - Matricula.bajas_desercion + Matricula.nuevo_ingreso
+        ).label("matricula_actual"),
         func.sum(Matricula.bajas_reprobacion).label("rep"),
         func.sum(Matricula.bajas_desercion).label("des"),
     ).group_by(Matricula.ciclo_escolar, Matricula.programa_educativo)
@@ -137,7 +141,7 @@ async def calcular_rendimiento(
         IndicadorPorcentual(
             ciclo_escolar=r.ciclo_escolar,
             programa_educativo=r.programa_educativo,
-            valor=calculate_percentage(r.rep, r.total),
+            valor=calculate_percentage(r.rep, r.matricula_actual),
         )
         for r in mat_rows
     ]
@@ -145,7 +149,7 @@ async def calcular_rendimiento(
         IndicadorPorcentual(
             ciclo_escolar=r.ciclo_escolar,
             programa_educativo=r.programa_educativo,
-            valor=calculate_percentage(r.des, r.total),
+            valor=calculate_percentage(r.des, r.matricula_actual),
         )
         for r in mat_rows
     ]
@@ -166,15 +170,17 @@ async def calcular_bajas(
 ) -> BajasResumen:
     """Bajas por reprobación y por deserción, agrupadas por carrera, con fila de totales.
 
-    Los porcentajes usan el mismo denominador (suma de Matricula.total) que
-    calcular_rendimiento(), para que Reprobación/Deserción % coincidan entre ambos módulos
-    bajo los mismos filtros.
+    Los porcentajes usan como denominador la Matrícula Actual (total - bajas + nuevo_ingreso),
+    igual que calcular_rendimiento(), para que Reprobación/Deserción % coincidan entre ambos
+    módulos bajo los mismos filtros.
     """
     query = select(
         Matricula.programa_educativo,
         func.sum(Matricula.bajas_reprobacion).label("bajas_reprobacion"),
         func.sum(Matricula.bajas_desercion).label("bajas_desercion"),
-        func.sum(Matricula.total).label("total"),
+        func.sum(
+            Matricula.total - Matricula.bajas_reprobacion - Matricula.bajas_desercion + Matricula.nuevo_ingreso
+        ).label("matricula_actual"),
     ).group_by(Matricula.programa_educativo).order_by(Matricula.programa_educativo)
     query = _apply_filters(
         query, Matricula, subsistema_id, ciclo_escolar, programa_educativo, cuatrimestre
@@ -186,14 +192,14 @@ async def calcular_bajas(
             programa_educativo=r.programa_educativo,
             bajas_reprobacion=int(r.bajas_reprobacion or 0),
             bajas_desercion=int(r.bajas_desercion or 0),
-            reprobacion_pct=calculate_percentage(r.bajas_reprobacion, r.total),
-            desercion_pct=calculate_percentage(r.bajas_desercion, r.total),
+            reprobacion_pct=calculate_percentage(r.bajas_reprobacion, r.matricula_actual),
+            desercion_pct=calculate_percentage(r.bajas_desercion, r.matricula_actual),
         )
         for r in rows
     ]
     total_bajas_reprobacion = sum(p.bajas_reprobacion for p in por_carrera)
     total_bajas_desercion = sum(p.bajas_desercion for p in por_carrera)
-    total_matricula = sum(int(r.total or 0) for r in rows)
+    total_matricula = sum(int(r.matricula_actual or 0) for r in rows)
     totales = BajasPunto(
         programa_educativo="Total",
         bajas_reprobacion=total_bajas_reprobacion,
@@ -396,7 +402,9 @@ async def calcular_indicadores_opcionales(
     query = select(
         Matricula.ciclo_escolar,
         Matricula.programa_educativo,
-        func.sum(Matricula.total).label("total"),
+        func.sum(
+            Matricula.total - Matricula.bajas_reprobacion - Matricula.bajas_desercion + Matricula.nuevo_ingreso
+        ).label("matricula_actual"),
         func.sum(Matricula.bajas_desercion).label("des"),
         func.sum(Matricula.poblacion_edad_escolar).label("pob"),
         func.sum(Matricula.egresados_nms).label("egr_nms"),
@@ -409,7 +417,7 @@ async def calcular_indicadores_opcionales(
         IndicadorPorcentual(
             ciclo_escolar=r.ciclo_escolar,
             programa_educativo=r.programa_educativo,
-            valor=calculate_percentage(r.total, r.pob),
+            valor=calculate_percentage(r.matricula_actual, r.pob),
         )
         for r in rows if r.pob
     ]
@@ -417,7 +425,7 @@ async def calcular_indicadores_opcionales(
         IndicadorPorcentual(
             ciclo_escolar=r.ciclo_escolar,
             programa_educativo=r.programa_educativo,
-            valor=calculate_percentage(r.des, r.total),
+            valor=calculate_percentage(r.des, r.matricula_actual),
         )
         for r in rows
     ]
