@@ -16,10 +16,16 @@ export function Eficiencia() {
   const filters = useFilters("eficiencia");
   const exportDisabled = !hasActiveFilters(filters);
 
-  const { data: catalogoGeneraciones } = useQuery({
+  const { data: catalogoGeneracionesRaw } = useQuery({
     queryKey: ["ciclos", "generacion"],
     queryFn: () => ciclosApi.list({ tipo: "generacion" }),
   });
+  // Las generaciones deshabilitadas no se ofrecen para elegir: mostrarlas confunde,
+  // ya que no representan datos vigentes.
+  const catalogoGeneraciones = useMemo(
+    () => catalogoGeneracionesRaw?.filter((g) => g.activo),
+    [catalogoGeneracionesRaw],
+  );
 
   const [generaciones, setGeneraciones] = useState<string[]>([]);
   const toggleGeneracion = (valor: string) =>
@@ -95,7 +101,7 @@ export function Eficiencia() {
                     disabled && "opacity-40 cursor-not-allowed",
                   )}
                 >
-                  {g.valor}{!g.activo ? " (deshabilitado)" : ""}
+                  {g.valor}
                 </button>
               );
             })}

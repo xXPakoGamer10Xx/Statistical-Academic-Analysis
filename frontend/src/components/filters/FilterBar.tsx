@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -29,18 +29,22 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
   });
 
   // Catalogo administrable de carreras (reemplaza la lista de sugerencias NO estricta).
-  const { data: carreras } = useQuery({
+  // Las carreras deshabilitadas no se ofrecen para elegir: mostrarlas confunde al usuario.
+  const { data: carrerasRaw } = useQuery({
     queryKey: ["carreras", effectiveSubsistemaId],
     queryFn: () => carrerasApi.list(effectiveSubsistemaId ? { subsistema_id: effectiveSubsistemaId } : undefined),
     enabled: showPrograma,
   });
+  const carreras = useMemo(() => carrerasRaw?.filter((c) => c.activo), [carrerasRaw]);
 
   // Catalogo administrable de ciclos generacionales (reemplaza la lista hardcodeada).
-  const { data: ciclos } = useQuery({
+  // Los ciclos deshabilitados no se ofrecen para elegir: mostrarlos confunde al usuario.
+  const { data: ciclosRaw } = useQuery({
     queryKey: ["ciclos", "ciclo"],
     queryFn: () => ciclosApi.list({ tipo: "ciclo" }),
     enabled: showCiclo,
   });
+  const ciclos = useMemo(() => ciclosRaw?.filter((c) => c.activo), [ciclosRaw]);
 
   // Al entrar a una vista sin ciclo seleccionado, preseleccionar el más reciente
   // (evita pantallas vacías al abrir por primera vez).
@@ -64,7 +68,7 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
             <option value="">Todos los ciclos</option>
             {ciclos?.map((c) => (
               <option key={c.id} value={c.valor}>
-                {c.valor}{!c.activo ? " (deshabilitado)" : ""}
+                {c.valor}
               </option>
             ))}
           </Select>
@@ -114,7 +118,7 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
             <option value="">Todas las carreras</option>
             {carreras?.map((c) => (
               <option key={c.id} value={c.nombre}>
-                {c.nombre}{!c.activo ? " (deshabilitada)" : ""}
+                {c.nombre}
               </option>
             ))}
           </Select>
