@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, Link2, Power, PowerOff } from "lucide-react";
-import { useState } from "react";
+import { CornerDownRight, GraduationCap, Power, PowerOff } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
 import { carrerasApi, subsistemasApi } from "@/api/endpoints";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -11,11 +11,6 @@ import { cn } from "@/lib/utils";
 import type { Carrera } from "@/types";
 
 type Nivel = "tsu" | "profesional";
-
-const NIVEL_LABELS: Record<Nivel, string> = {
-  tsu: "TSU",
-  profesional: "Ingeniería / Licenciatura",
-};
 
 interface FormState {
   subsistema_id: number | null;
@@ -64,7 +59,31 @@ export function Carreras() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["carreras"] }),
   });
 
-  const nombrePorId = (id: number | null) => (carreras ?? []).find((c) => c.id === id)?.nombre ?? "—";
+  // Agrupa cada Ingeniería/Lic. junto con su TSU emparejado (se muestran juntos, el TSU
+  // con nombre chico debajo), y deja las carreras sin par al final, sueltas.
+  const filas = useMemo(() => {
+    const lista = carreras ?? [];
+    const porId = new Map(lista.map((c) => [c.id, c]));
+    const vistos = new Set<number>();
+    const grupos: { principal: Carrera; par: Carrera | null }[] = [];
+
+    for (const c of lista) {
+      if (vistos.has(c.id)) continue;
+      if (c.nivel === "profesional") {
+        const par = c.carrera_par_id ? porId.get(c.carrera_par_id) ?? null : null;
+        grupos.push({ principal: c, par });
+        vistos.add(c.id);
+        if (par) vistos.add(par.id);
+      }
+    }
+    for (const c of lista) {
+      if (!vistos.has(c.id)) {
+        grupos.push({ principal: c, par: null });
+        vistos.add(c.id);
+      }
+    }
+    return grupos;
+  }, [carreras]);
 
   return (
     <div className="space-y-8">
@@ -172,45 +191,73 @@ export function Carreras() {
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 <th className="pb-4 pl-2 font-bold">Carrera</th>
-                <th className="pb-4 font-bold">Nivel</th>
-                <th className="pb-4 font-bold">Carrera par</th>
                 <th className="pb-4 text-center font-bold">Estado</th>
                 <th className="pb-4 text-center font-bold">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {carreras?.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                  <td className="py-4 pl-2 font-semibold text-slate-900 dark:text-white">{c.nombre}</td>
-                  <td className="py-4 text-slate-600 dark:text-slate-400">{NIVEL_LABELS[c.nivel]}</td>
-                  <td className="py-4 text-slate-600 dark:text-slate-400">
-                    {c.carrera_par_id ? (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Link2 className="h-3.5 w-3.5 text-brand-500" />
-                        {nombrePorId(c.carrera_par_id)}
+            <tbody>
+              {filas.map(({ principal, par }) => (
+                <Fragment key={principal.id}>
+                  <tr
+                    className={cn(
+                      "hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors",
+                      par ? "" : "border-b border-slate-100 dark:border-slate-800/50",
+                    )}
+                  >
+                    <td className="pt-4 pb-1 pl-2 font-semibold text-slate-900 dark:text-white">{principal.nombre}</td>
+                    <td className="pt-4 pb-1 text-center">
+                      <span className={cn(
+                        "inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
+                        principal.activo ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      )}>
+                        {principal.activo ? "Activo" : "Deshabilitado"}
                       </span>
-                    ) : "—"}
-                  </td>
-                  <td className="py-4 text-center">
-                    <span className={cn(
-                      "inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
-                      c.activo ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                    )}>
-                      {c.activo ? "Activo" : "Deshabilitado"}
-                    </span>
-                  </td>
-                  <td className="py-4 text-center">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-8 w-8 p-0"
-                      onClick={() => toggle.mutate(c)}
-                      title={c.activo ? "Deshabilitar" : "Reactivar"}
+                    </td>
+                    <td className="pt-4 pb-1 text-center">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-8 w-8 p-0"
+                        onClick={() => toggle.mutate(principal)}
+                        title={principal.activo ? "Deshabilitar" : "Reactivar"}
+                      >
+                        {principal.activo ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                      </Button>
+                    </td>
+                  </tr>
+                  {par && (
+                    <tr
+                      key={par.id}
+                      className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
                     >
-                      {c.activo ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-                    </Button>
-                  </td>
-                </tr>
+                      <td className="pt-0 pb-4 pl-2">
+                        <span className="inline-flex items-center gap-1.5 pl-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+                          <CornerDownRight className="h-3.5 w-3.5 shrink-0" />
+                          {par.nombre}
+                        </span>
+                      </td>
+                      <td className="pt-0 pb-4 text-center">
+                        <span className={cn(
+                          "inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                          par.activo ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        )}>
+                          {par.activo ? "Activo" : "Deshabilitado"}
+                        </span>
+                      </td>
+                      <td className="pt-0 pb-4 text-center">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 w-7 p-0"
+                          onClick={() => toggle.mutate(par)}
+                          title={par.activo ? "Deshabilitar" : "Reactivar"}
+                        >
+                          {par.activo ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+                        </Button>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

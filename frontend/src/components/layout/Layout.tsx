@@ -45,7 +45,7 @@ const NAV_ITEMS = [
   { to: "/docentes", label: "Eval. Docente", icon: UserCheck, allowedRoles: null },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, allowedRoles: ["admin_escolar", "admin_general"] },
   { to: "/admin/carreras", label: "Carreras", icon: Layers, allowedRoles: ["admin_escolar", "admin_general"] },
-  { to: "/admin/ciclos", label: "Ciclos", icon: CalendarDays, allowedRoles: ["admin_general"] },
+  { to: "/admin/ciclos", label: "Ciclos", icon: CalendarDays, allowedRoles: ["admin_escolar", "admin_general"] },
   { to: "/admin/auditoria", label: "Auditoría", icon: ClipboardList, allowedRoles: ["admin_general"] },
 ];
 

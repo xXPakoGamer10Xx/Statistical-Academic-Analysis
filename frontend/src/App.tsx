@@ -32,15 +32,15 @@ export function App() {
           <Route element={<ProtectedRoute allowedRoles={["admin_escolar", "admin_general"]} />}>
             <Route path="cargas" element={<Cargas />} />
           </Route>
-          {/* Admin escolar y general gestionan usuarios y el catálogo de carreras */}
+          {/* Admin escolar y general gestionan usuarios y los catálogos de carreras y ciclos */}
           <Route element={<ProtectedRoute allowedRoles={["admin_escolar", "admin_general"]} />}>
             <Route path="admin/usuarios" element={<Usuarios />} />
             <Route path="admin/carreras" element={<Carreras />} />
+            <Route path="admin/ciclos" element={<Ciclos />} />
           </Route>
-          {/* Solo admin general ve la bitácora y gestiona el catálogo de ciclos */}
+          {/* Solo admin general ve la bitácora */}
           <Route element={<ProtectedRoute allowedRoles={["admin_general"]} />}>
             <Route path="admin/auditoria" element={<AuditLog />} />
-            <Route path="admin/ciclos" element={<Ciclos />} />
           </Route>
         </Route>
       </Route>
