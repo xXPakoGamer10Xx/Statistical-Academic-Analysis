@@ -39,6 +39,7 @@ _sync_engine = create_engine(settings.database_url_str, pool_pre_ping=True, futu
 
 MODEL_BY_TYPE = {
     "matricula": Matricula,
+    "nuevo_ingreso": Matricula,
     "evaluacion_academica": EvaluacionAcademica,
     "titulacion": Titulacion,
     "evaluacion_docente": EvaluacionDocente,
@@ -56,6 +57,7 @@ CATEGORIA_BY_DATASET: dict[str, str] = {
 
 DEDUP_KEYS: dict[str, tuple[str, ...]] = {
     "matricula": ("subsistema_id", "ciclo_escolar", "cuatrimestre", "programa_educativo"),
+    "nuevo_ingreso": ("subsistema_id", "ciclo_escolar", "cuatrimestre", "programa_educativo"),
     "titulacion": ("subsistema_id", "generacion", "programa_educativo"),
     "becas": ("subsistema_id", "ciclo_escolar", "programa_educativo", "tipo", "sexo"),
     "discapacidad": ("subsistema_id", "ciclo_escolar", "programa_educativo", "categoria", "tipo", "sexo"),
@@ -80,7 +82,7 @@ def _upsert_rows(session: Session, dataset_type: str, rows: list[dict]) -> int:
     model = MODEL_BY_TYPE[dataset_type]
     stmt = pg_insert(model.__table__).values(rows)
 
-    if dataset_type == "matricula":
+    if dataset_type in ("matricula", "nuevo_ingreso"):
         stmt = stmt.on_conflict_do_update(
             constraint="uq_matricula_periodo",
             set_={c: stmt.excluded[c] for c in [
@@ -136,7 +138,7 @@ def _apply_db_validations(session: Session, dataset_type: str, rows: list[dict])
         rows, madres_errors = check_madres_solteras(rows, mujeres_by_key)
         all_errors.extend(madres_errors)
 
-    if dataset_type == "matricula" and rows:
+    if dataset_type in ("matricula", "nuevo_ingreso") and rows:
         lookups = matricula_carry_forward_lookups(rows)
         previous_by_key: dict[tuple, dict[str, int] | None] = {}
         for (subsistema_id, programa_educativo), (ciclo_escolar, cuatrimestre) in lookups.items():

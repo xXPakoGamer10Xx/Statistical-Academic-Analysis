@@ -79,7 +79,7 @@ def _validate_dataframe(
                 value == ""
                 and field.kind == "int"
                 and field.required
-                and dataset_type == "matricula"
+                and dataset_type in ("matricula", "nuevo_ingreso")
             ):
                 normalized_row[field.name] = 0
                 continue

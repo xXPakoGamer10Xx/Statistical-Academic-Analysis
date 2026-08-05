@@ -166,14 +166,15 @@ async def calcular_bajas(
 ) -> BajasResumen:
     """Bajas por reprobación y por deserción, agrupadas por carrera, con fila de totales.
 
-    Es una capa de visualización/agregación: los mismos números ya alimentan Reprobación y
-    Deserción % en calcular_rendimiento() (vía calculate_percentage), no se agrega lógica de
-    fórmula nueva aquí.
+    Los porcentajes usan el mismo denominador (suma de Matricula.total) que
+    calcular_rendimiento(), para que Reprobación/Deserción % coincidan entre ambos módulos
+    bajo los mismos filtros.
     """
     query = select(
         Matricula.programa_educativo,
         func.sum(Matricula.bajas_reprobacion).label("bajas_reprobacion"),
         func.sum(Matricula.bajas_desercion).label("bajas_desercion"),
+        func.sum(Matricula.total).label("total"),
     ).group_by(Matricula.programa_educativo).order_by(Matricula.programa_educativo)
     query = _apply_filters(
         query, Matricula, subsistema_id, ciclo_escolar, programa_educativo, cuatrimestre
@@ -185,13 +186,20 @@ async def calcular_bajas(
             programa_educativo=r.programa_educativo,
             bajas_reprobacion=int(r.bajas_reprobacion or 0),
             bajas_desercion=int(r.bajas_desercion or 0),
+            reprobacion_pct=calculate_percentage(r.bajas_reprobacion, r.total),
+            desercion_pct=calculate_percentage(r.bajas_desercion, r.total),
         )
         for r in rows
     ]
+    total_bajas_reprobacion = sum(p.bajas_reprobacion for p in por_carrera)
+    total_bajas_desercion = sum(p.bajas_desercion for p in por_carrera)
+    total_matricula = sum(int(r.total or 0) for r in rows)
     totales = BajasPunto(
         programa_educativo="Total",
-        bajas_reprobacion=sum(p.bajas_reprobacion for p in por_carrera),
-        bajas_desercion=sum(p.bajas_desercion for p in por_carrera),
+        bajas_reprobacion=total_bajas_reprobacion,
+        bajas_desercion=total_bajas_desercion,
+        reprobacion_pct=calculate_percentage(total_bajas_reprobacion, total_matricula),
+        desercion_pct=calculate_percentage(total_bajas_desercion, total_matricula),
     )
     return BajasResumen(por_carrera=por_carrera, totales=totales)
 

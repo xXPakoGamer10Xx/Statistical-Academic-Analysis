@@ -312,7 +312,7 @@ async def _apply_db_validations(
         rows, madres_errors = check_madres_solteras(rows, mujeres_by_key)
         all_errors.extend(madres_errors)
 
-    if dataset_type == "matricula" and rows:
+    if dataset_type in ("matricula", "nuevo_ingreso") and rows:
         lookups = matricula_carry_forward_lookups(rows)
         previous_by_key: dict[tuple, dict[str, int] | None] = {}
         for (subsistema_id, programa_educativo), (ciclo_escolar, cuatrimestre) in lookups.items():
@@ -337,7 +337,7 @@ def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
     """Construye el INSERT ... ON CONFLICT DO UPDATE (mismo criterio que la carga de archivos)."""
     model = MODEL_BY_TYPE[dataset_type]
     stmt = pg_insert(model.__table__).values(rows)
-    if dataset_type == "matricula":
+    if dataset_type in ("matricula", "nuevo_ingreso"):
         stmt = stmt.on_conflict_do_update(
             constraint="uq_matricula_periodo",
             set_={c: stmt.excluded[c] for c in [

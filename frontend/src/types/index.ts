@@ -162,6 +162,8 @@ export interface BajasPunto {
   programa_educativo: string;
   bajas_reprobacion: number;
   bajas_desercion: number;
+  reprobacion_pct: number;
+  desercion_pct: number;
 }
 
 export interface BajasResumen {

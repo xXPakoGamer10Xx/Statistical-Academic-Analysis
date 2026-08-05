@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 DatasetType = Literal[
     "matricula",
+    "nuevo_ingreso",
     "evaluacion_academica",
     "titulacion",
     "evaluacion_docente",

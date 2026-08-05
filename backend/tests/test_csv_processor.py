@@ -6,9 +6,9 @@ from app.services.csv_processor import parse_and_validate, rows_from_dataframe
 def test_parse_and_validate_rejects_invalid_rows_and_keeps_valid_rows(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,cuatrimestre,programa_educativo,ingreso_examen,ingreso_pase_directo,ingreso_renoes,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
-            "2025-2026,1,Ingenieria,15,4,1,5,3,55,45,200",
-            "2025-2026,dos,Administracion,8,2,0,2,1,40,50,180",
+            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
+            "2025-2026,1,Ingenieria,5,3,55,45,200",
+            "2025-2026,dos,Administracion,2,1,40,50,180",
         ]
     )
     file_path = tmp_path / "matricula.csv"
@@ -31,8 +31,8 @@ def test_parse_and_validate_rejects_invalid_rows_and_keeps_valid_rows(tmp_path: 
 def test_parse_and_validate_rejects_negative_numbers(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,cuatrimestre,programa_educativo,ingreso_examen,ingreso_pase_directo,ingreso_renoes,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
-            "2025-2026,1,Ingenieria,-100,4,1,5,3,55,45,200",
+            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
+            "2025-2026,1,Ingenieria,-100,3,55,45,200",
         ]
     )
     file_path = tmp_path / "matricula_negativo.csv"
@@ -44,8 +44,33 @@ def test_parse_and_validate_rejects_negative_numbers(tmp_path: Path) -> None:
     assert errors == [
         {
             "row": 2,
-            "column": "ingreso_examen",
+            "column": "bajas_reprobacion",
             "value": "-100",
+            "error": "no puede ser negativo",
+        }
+    ]
+
+
+def test_parse_and_validate_nuevo_ingreso_dataset(tmp_path: Path) -> None:
+    csv_content = "\n".join(
+        [
+            "ciclo_escolar,cuatrimestre,programa_educativo,ingreso_examen,ingreso_pase_directo,ingreso_renoes",
+            "2025-2026,1,Ingenieria,15,4,1",
+            "2025-2026,2,Administracion,-8,2,0",
+        ]
+    )
+    file_path = tmp_path / "nuevo_ingreso.csv"
+    file_path.write_text(csv_content, encoding="utf-8")
+
+    df, errors = parse_and_validate(str(file_path), "nuevo_ingreso")
+
+    assert len(df) == 1
+    assert df.iloc[0].to_dict()["programa_educativo"] == "Ingenieria"
+    assert errors == [
+        {
+            "row": 3,
+            "column": "ingreso_examen",
+            "value": "-8",
             "error": "no puede ser negativo",
         }
     ]
@@ -54,9 +79,9 @@ def test_parse_and_validate_rejects_negative_numbers(tmp_path: Path) -> None:
 def test_rows_from_dataframe_converts_nan_optional_ints_to_none(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,cuatrimestre,programa_educativo,ingreso_examen,ingreso_pase_directo,ingreso_renoes,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
-            "2025-2026,1,Ingenieria,15,4,1,5,3,55,45,300",
-            "2025-2026,2,Administracion,8,2,0,2,1,40,50,",
+            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
+            "2025-2026,1,Ingenieria,5,3,55,45,300",
+            "2025-2026,2,Administracion,2,1,40,50,",
         ]
     )
     file_path = tmp_path / "matricula_optional.csv"

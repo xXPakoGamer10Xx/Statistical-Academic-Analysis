@@ -83,6 +83,8 @@ class BajasPunto(BaseModel):
     programa_educativo: str
     bajas_reprobacion: int
     bajas_desercion: int
+    reprobacion_pct: float
+    desercion_pct: float
 
 
 class BajasResumen(BaseModel):
