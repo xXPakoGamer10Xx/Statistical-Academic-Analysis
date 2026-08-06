@@ -103,17 +103,23 @@ export function CarreraSelect({
         createPortal(
           <div
             ref={panelRef}
-            style={{ position: "fixed", top: position.top, left: position.left, width: Math.max(position.width, 260) }}
+            style={{
+              position: "fixed",
+              top: position.top,
+              left: position.left,
+              minWidth: Math.max(position.width, 320),
+              maxWidth: "min(92vw, 460px)",
+            }}
             className="z-[9999] max-h-80 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 shadow-xl animate-in fade-in slide-in-from-top-2"
           >
             {allLabel && (
               <button
                 type="button"
                 onClick={() => select("")}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
               >
-                <Check className={cn("h-3.5 w-3.5 shrink-0 text-brand-500", value === "" ? "opacity-100" : "opacity-0")} />
-                <span className="truncate">{allLabel}</span>
+                <Check className={cn("mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500", value === "" ? "opacity-100" : "opacity-0")} />
+                <span>{allLabel}</span>
               </button>
             )}
 
@@ -123,18 +129,18 @@ export function CarreraSelect({
                   <button
                     type="button"
                     onClick={() => select(principal.nombre)}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                    className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   >
-                    <Check className={cn("h-3.5 w-3.5 shrink-0 text-brand-500", value === principal.nombre ? "opacity-100" : "opacity-0")} />
-                    <span className="truncate">{principal.nombre}</span>
+                    <Check className={cn("mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500", value === principal.nombre ? "opacity-100" : "opacity-0")} />
+                    <span>{principal.nombre}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => select(par.nombre)}
-                    className="flex w-full items-center gap-2 py-2 pl-8 pr-3 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                    className="flex w-full items-start gap-2 py-2 pl-8 pr-3 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   >
-                    <Check className={cn("h-3.5 w-3.5 shrink-0 text-brand-500", value === par.nombre ? "opacity-100" : "opacity-0")} />
-                    <span className="truncate">{par.nombre}</span>
+                    <Check className={cn("mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500", value === par.nombre ? "opacity-100" : "opacity-0")} />
+                    <span>{par.nombre}</span>
                   </button>
                 </div>
               ) : (
@@ -142,10 +148,10 @@ export function CarreraSelect({
                   key={principal.id}
                   type="button"
                   onClick={() => select(principal.nombre)}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                 >
-                  <Check className={cn("h-3.5 w-3.5 shrink-0 text-brand-500", value === principal.nombre ? "opacity-100" : "opacity-0")} />
-                  <span className="truncate">{principal.nombre}</span>
+                  <Check className={cn("mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500", value === principal.nombre ? "opacity-100" : "opacity-0")} />
+                  <span>{principal.nombre}</span>
                 </button>
               ),
             )}
