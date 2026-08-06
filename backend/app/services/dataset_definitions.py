@@ -112,8 +112,10 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             DatasetField("programa_educativo", "string"),
             DatasetField("bajas_reprobacion", "int"),
             DatasetField("bajas_desercion", "int"),
-            DatasetField("hombres", "int"),
-            DatasetField("mujeres", "int"),
+            # Opcional: la captura manual ya no las pide (ver ManualEntry.tsx); solo se
+            # llenan si vienen en un archivo Excel/CSV con esas columnas.
+            DatasetField("hombres", "int", required=False),
+            DatasetField("mujeres", "int", required=False),
             DatasetField("poblacion_edad_escolar", "int", required=False),
         ),
     ),

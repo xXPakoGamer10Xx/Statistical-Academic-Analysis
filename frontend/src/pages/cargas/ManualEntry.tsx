@@ -209,6 +209,53 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
     return map;
   }, [madresSolterasKeys, mujeresQueries]);
 
+  // --- Matricula: celda informativa con la Matricula Actual ya cargada en el sistema ---
+  // para (ciclo, cuatrimestre, programa). Es solo de lectura (no se envia al backend);
+  // ayuda a que el usuario capture bajas/reprobacion con contexto de lo que ya existe.
+  const matriculaTotalKeys = useMemo(() => {
+    if (datasetType !== "matricula") return [] as string[];
+    const keys = new Set<string>();
+    rows.forEach((r) => {
+      if (r.ciclo_escolar && r.cuatrimestre?.trim() && r.programa_educativo) {
+        keys.add(`${r.ciclo_escolar}|||${r.cuatrimestre}|||${r.programa_educativo}`);
+      }
+    });
+    return [...keys];
+  }, [datasetType, rows]);
+
+  const matriculaTotalQueries = useQueries({
+    queries: matriculaTotalKeys.map((key) => {
+      const [ciclo_escolar, cuatrimestre, programa_educativo] = key.split("|||");
+      return {
+        queryKey: ["matricula-total-actual", effectiveSubsistemaId, ciclo_escolar, cuatrimestre, programa_educativo],
+        queryFn: () =>
+          indicadoresApi.matricula({
+            subsistema_id: effectiveSubsistemaId,
+            ciclo_escolar,
+            cuatrimestre: Number(cuatrimestre),
+            programa_educativo,
+          }),
+        enabled: effectiveSubsistemaId !== undefined,
+        staleTime: 30_000,
+      };
+    }),
+  });
+
+  const matriculaTotalPorKey = useMemo(() => {
+    const map = new Map<string, number>();
+    matriculaTotalKeys.forEach((key, i) => {
+      const data = matriculaTotalQueries[i]?.data;
+      if (data) map.set(key, data.total_actual);
+    });
+    return map;
+  }, [matriculaTotalKeys, matriculaTotalQueries]);
+
+  const matriculaTotalFor = (row: Row): number | null => {
+    if (!row.ciclo_escolar || !row.cuatrimestre?.trim() || !row.programa_educativo) return null;
+    const key = `${row.ciclo_escolar}|||${row.cuatrimestre}|||${row.programa_educativo}`;
+    return matriculaTotalPorKey.get(key) ?? null;
+  };
+
   const madresSolterasError = (row: Row): string | null => {
     if (datasetType !== "becas") return null;
     if (row.tipo?.trim().toLowerCase() !== MADRES_SOLTERAS) return null;
@@ -284,6 +331,16 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
     (isAdminGeneral ? subsistemaId !== "" : fixedSubsistemaId !== null) &&
     rows.some((r) => Object.values(r).some((v) => v.trim() !== "")) &&
     !hasMadresSolterasError;
+
+  // Matricula ya no captura hombres/mujeres en la captura manual (ver comentario arriba
+  // de matriculaTotalKeys): el campo del sistema sigue existiendo para cargas por archivo.
+  const visibleFields = useMemo(
+    () =>
+      datasetType === "matricula"
+        ? (def?.fields.filter((f) => f.name !== "hombres" && f.name !== "mujeres") ?? [])
+        : (def?.fields ?? []),
+    [def, datasetType],
+  );
 
   const puestoOptions = def?.fields.find((f) => f.name === "puesto")?.allowed_values ?? [];
   const puntajeField = def?.fields.find((f) => f.name === "puntaje");
@@ -446,18 +503,26 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
               <>
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    {def?.fields.map((f) => (
+                    {visibleFields.map((f) => (
                       <th key={f.name} className="px-2 pb-2 font-bold whitespace-nowrap">
                         {f.name}{f.required && <span className="text-red-400"> *</span>}
                       </th>
                     ))}
+                    {datasetType === "matricula" && (
+                      <th
+                        className="px-2 pb-2 font-bold whitespace-nowrap text-slate-400"
+                        title="Solo informativo: matrícula ya registrada en el sistema para ese ciclo/cuatrimestre/carrera. No se puede editar aquí."
+                      >
+                        Matrícula actual en sistema
+                      </th>
+                    )}
                     <th className="px-2 pb-2" />
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row, rowIdx) => (
                     <tr key={rowIdx} className="border-b border-slate-100 dark:border-slate-800/50">
-                      {def?.fields.map((f) => {
+                      {visibleFields.map((f) => {
                         const suggestions = suggestionsFor(f, row);
                         const listId = `dl-${rowIdx}-${f.name}`;
                         const cellError = f.name === "cantidad" && datasetType === "becas" ? madresSolterasError(row) : null;
@@ -558,6 +623,16 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                           </td>
                         );
                       })}
+                      {datasetType === "matricula" && (
+                        <td className="px-1 py-1.5 align-top">
+                          <div className="flex h-10 min-w-[100px] items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {(() => {
+                              const total = matriculaTotalFor(row);
+                              return total === null ? "—" : total.toLocaleString("es-MX");
+                            })()}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-1 py-1.5">
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeRow(rowIdx)}>
                           <Trash2 className="h-4 w-4 text-slate-400" />
