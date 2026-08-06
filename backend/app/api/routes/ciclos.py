@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import CurrentUser, DbDep, SchoolAdminUser
 from app.models.ciclo_generacional import CicloGeneracional
+from app.models.matricula import Matricula
 from app.schemas.ciclo import CicloCreate, CicloOut, CicloUpdate, TipoCiclo
 from app.services.audit import log_action
 
@@ -13,13 +14,25 @@ router = APIRouter()
 @router.get("", response_model=list[CicloOut])
 async def list_ciclos(
     _user: CurrentUser, db: DbDep, tipo: TipoCiclo | None = Query(default=None)
-) -> list[CicloGeneracional]:
+) -> list[CicloOut]:
     stmt = select(CicloGeneracional)
     if tipo is not None:
         stmt = stmt.where(CicloGeneracional.tipo == tipo)
     stmt = stmt.order_by(CicloGeneracional.tipo, CicloGeneracional.valor)
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    ciclos = list(result.scalars().all())
+
+    con_matricula: set[str] = set()
+    if any(c.tipo == "ciclo" for c in ciclos):
+        result_matricula = await db.execute(select(Matricula.ciclo_escolar).distinct())
+        con_matricula = set(result_matricula.scalars().all())
+
+    return [
+        CicloOut.model_validate(ciclo).model_copy(
+            update={"con_datos": ciclo.tipo != "ciclo" or ciclo.valor in con_matricula}
+        )
+        for ciclo in ciclos
+    ]
 
 
 @router.post("", response_model=CicloOut, status_code=status.HTTP_201_CREATED)

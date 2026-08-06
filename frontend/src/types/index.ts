@@ -99,6 +99,8 @@ export interface Ciclo {
   tipo: "ciclo" | "generacion";
   activo: boolean;
   created_at: string;
+  /** True si ya hay matrícula capturada para este ciclo (ver FilterBar). */
+  con_datos: boolean;
 }
 
 /** Catalogo administrable de carreras (programa_educativo) por escuela, con TSU emparejado. */

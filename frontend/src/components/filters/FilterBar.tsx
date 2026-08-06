@@ -16,6 +16,15 @@ interface Props {
   showPrograma?: boolean;
 }
 
+/** Ciclo escolar en curso a partir de la fecha real (formato "AAAA-AAAA"), asumiendo
+ * que el ciclo inicia en agosto. Sirve como techo para no preseleccionar ciclos futuros
+ * dados de alta por adelantado en el catálogo. */
+function cicloEscolarActual(): string {
+  const hoy = new Date();
+  const inicio = hoy.getMonth() >= 7 ? hoy.getFullYear() : hoy.getFullYear() - 1;
+  return `${inicio}-${inicio + 1}`;
+}
+
 export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, showPrograma = true }: Props) {
   const filters = useFilters(scope);
   const { user } = useAuth();
@@ -74,11 +83,20 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
   });
   const ciclos = useMemo(() => ciclosRaw?.filter((c) => c.activo), [ciclosRaw]);
 
-  // Al entrar a una vista sin ciclo seleccionado, preseleccionar el más reciente
-  // (evita pantallas vacías al abrir por primera vez).
+  // Al entrar a una vista sin ciclo seleccionado, preseleccionar el más reciente CON DATOS
+  // (evita pantallas vacías al abrir por primera vez). El catálogo puede tener ciclos
+  // futuros dados de alta con antelación para planeación, todavía sin ninguna matrícula
+  // capturada: tomar el valor mayor del catálogo a ciegas terminaba seleccionando esos
+  // ciclos futuros vacíos en vez del ciclo vigente, mostrando la vista sin información
+  // hasta que el usuario cambiaba el filtro manualmente.
   useEffect(() => {
     if (showCiclo && !filters.ciclo_escolar && ciclos && ciclos.length > 0) {
-      const masReciente = [...ciclos].sort((a, b) => b.valor.localeCompare(a.valor))[0];
+      const ordenados = [...ciclos].sort((a, b) => b.valor.localeCompare(a.valor));
+      const cicloVigente = cicloEscolarActual();
+      const masReciente =
+        ordenados.find((c) => c.con_datos) ??
+        ordenados.find((c) => c.valor <= cicloVigente) ??
+        ordenados[ordenados.length - 1];
       filters.set({ ciclo_escolar: masReciente.valor });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

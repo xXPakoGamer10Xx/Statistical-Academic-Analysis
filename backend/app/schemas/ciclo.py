@@ -40,3 +40,7 @@ class CicloOut(BaseModel):
     tipo: TipoCiclo
     activo: bool
     created_at: datetime
+    # True si ya existe matrícula capturada para este ciclo. Los ciclos "ciclo" se dan de
+    # alta con antelación para planeación y suelen no tener datos aún; el frontend usa esto
+    # para no preseleccionar como "más reciente" un ciclo futuro todavía vacío.
+    con_datos: bool = True
