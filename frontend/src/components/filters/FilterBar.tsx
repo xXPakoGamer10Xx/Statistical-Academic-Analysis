@@ -3,10 +3,11 @@ import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { CarreraSelect } from "@/components/filters/CarreraSelect";
 import { carrerasApi, ciclosApi, subsistemasApi } from "@/api/endpoints";
 import { useAuth } from "@/hooks/useAuth";
 import { useFilters } from "@/stores/filters";
-import type { Carrera } from "@/types";
+import { agruparCarreras } from "@/lib/carreras";
 
 interface Props {
   /** Identificador de la vista para mantener filtros independientes por pantalla. */
@@ -50,29 +51,7 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
   // Agrupa cada carrera profesional con su TSU emparejado (misma pareja que /admin/carreras)
   // para que aparezcan juntas en el desplegable en vez de sueltas y desordenadas; cada una
   // sigue siendo una opción seleccionable por separado con su nombre real.
-  const gruposPrograma = useMemo(() => {
-    const lista = carreras ?? [];
-    const porId = new Map(lista.map((c) => [c.id, c]));
-    const vistos = new Set<number>();
-    const grupos: { principal: Carrera; par: Carrera | null }[] = [];
-
-    for (const c of lista) {
-      if (vistos.has(c.id)) continue;
-      if (c.nivel === "profesional") {
-        const par = c.carrera_par_id ? porId.get(c.carrera_par_id) ?? null : null;
-        grupos.push({ principal: c, par });
-        vistos.add(c.id);
-        if (par) vistos.add(par.id);
-      }
-    }
-    for (const c of lista) {
-      if (!vistos.has(c.id)) {
-        grupos.push({ principal: c, par: null });
-        vistos.add(c.id);
-      }
-    }
-    return grupos;
-  }, [carreras]);
+  const gruposPrograma = useMemo(() => agruparCarreras(carreras ?? []), [carreras]);
 
   // Catalogo administrable de ciclos generacionales (reemplaza la lista hardcodeada).
   // Los ciclos deshabilitados no se ofrecen para elegir: mostrarlos confunde al usuario.
@@ -157,24 +136,12 @@ export function FilterBar({ scope, showCiclo = true, showCuatrimestre = true, sh
       {showPrograma && (
         <div className="min-w-[200px] flex-1">
           <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Programa educativo</label>
-          <Select
+          <CarreraSelect
             value={filters.programa_educativo ?? ""}
-            onChange={(e) => filters.set({ programa_educativo: e.target.value || undefined })}
-          >
-            <option value="">Todas las carreras</option>
-            {gruposPrograma.map(({ principal, par }) =>
-              par ? (
-                <optgroup key={principal.id} label={principal.nombre}>
-                  <option value={principal.nombre}>{principal.nombre}</option>
-                  <option value={par.nombre}>{par.nombre}</option>
-                </optgroup>
-              ) : (
-                <option key={principal.id} value={principal.nombre}>
-                  {principal.nombre}
-                </option>
-              ),
-            )}
-          </Select>
+            onChange={(v) => filters.set({ programa_educativo: v || undefined })}
+            grupos={gruposPrograma}
+            allLabel="Todas las carreras"
+          />
         </div>
       )}
       <Button variant="secondary" className="h-11" onClick={() => filters.reset()}>

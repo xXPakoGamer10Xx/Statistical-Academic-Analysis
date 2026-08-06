@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { CarreraSelect } from "@/components/filters/CarreraSelect";
+import { agruparCarreras } from "@/lib/carreras";
 import type { DatasetDefinition, DatasetField, Subsistema } from "@/types";
 
 interface Props {
@@ -20,10 +22,6 @@ interface Props {
 type Row = Record<string, string>;
 
 const MADRES_SOLTERAS = "madres solteras";
-// Sentinel para "+ Agregar nueva carrera" en los desplegables de programa_educativo:
-// el catalogo de carreras es solo de sugerencia (no estricto), asi que siempre debe
-// poder capturarse una carrera nueva que aun no exista en la BD (ej. un TSU nuevo).
-const NUEVA_CARRERA = "__nueva_carrera__";
 
 function emptyRow(def: DatasetDefinition | undefined): Row {
   const r: Row = {};
@@ -141,6 +139,12 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
   });
   const programaSugerencias = useMemo(
     () => carrerasCatalogo?.filter((c) => c.activo).map((c) => c.nombre),
+    [carrerasCatalogo],
+  );
+  // Mismo agrupamiento (carrera profesional + TSU emparejado) que FilterBar, para que el
+  // desplegable de programa_educativo se vea igual en toda la app.
+  const gruposProgramaManual = useMemo(
+    () => agruparCarreras(carrerasCatalogo?.filter((c) => c.activo) ?? []),
     [carrerasCatalogo],
   );
   const { data: docenteSugerencias } = useQuery({
@@ -456,20 +460,15 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                           </datalist>
                         </td>
                         <td className="px-1 py-1.5">
-                          {programaSugerencias && programaSugerencias.length > 0 && !customProgramaRows.has(rowIdx) ? (
-                            <Select
+                          {gruposProgramaManual.length > 0 && !customProgramaRows.has(rowIdx) ? (
+                            <CarreraSelect
                               value={row.programa_educativo ?? ""}
-                              onChange={(e) =>
-                                e.target.value === NUEVA_CARRERA
-                                  ? enterCustomPrograma(rowIdx)
-                                  : setCell(rowIdx, "programa_educativo", e.target.value)
-                              }
+                              onChange={(v) => setCell(rowIdx, "programa_educativo", v)}
+                              grupos={gruposProgramaManual}
+                              allLabel="—"
+                              onAddNew={() => enterCustomPrograma(rowIdx)}
                               className="min-w-[160px]"
-                            >
-                              <option value="">—</option>
-                              {programaSugerencias.map((v) => <option key={v} value={v}>{v}</option>)}
-                              <option value={NUEVA_CARRERA}>+ Agregar nueva carrera…</option>
-                            </Select>
+                            />
                           ) : (
                             <div className="space-y-1">
                               <Input
@@ -479,7 +478,7 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                                 placeholder="Escribe la carrera…"
                                 className="min-w-[160px]"
                               />
-                              {programaSugerencias && programaSugerencias.length > 0 && (
+                              {gruposProgramaManual.length > 0 && (
                                 <button
                                   type="button"
                                   onClick={() => exitCustomPrograma(rowIdx)}
@@ -575,20 +574,15 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                               <Select value="Mujer" disabled onChange={() => {}}>
                                 <option value="Mujer">Mujer</option>
                               </Select>
-                            ) : f.name === "programa_educativo" && programaSugerencias && programaSugerencias.length > 0 && !customProgramaRows.has(rowIdx) ? (
+                            ) : f.name === "programa_educativo" && gruposProgramaManual.length > 0 && !customProgramaRows.has(rowIdx) ? (
                               // Carrera: desplegable con las carreras ya existentes, mas opcion de agregar una nueva.
-                              <Select
+                              <CarreraSelect
                                 value={row[f.name] ?? ""}
-                                onChange={(e) =>
-                                  e.target.value === NUEVA_CARRERA
-                                    ? enterCustomPrograma(rowIdx)
-                                    : setCell(rowIdx, f.name, e.target.value)
-                                }
-                              >
-                                <option value="">—</option>
-                                {programaSugerencias.map((v) => <option key={v} value={v}>{v}</option>)}
-                                <option value={NUEVA_CARRERA}>+ Agregar nueva carrera…</option>
-                              </Select>
+                                onChange={(v) => setCell(rowIdx, f.name, v)}
+                                grupos={gruposProgramaManual}
+                                allLabel="—"
+                                onAddNew={() => enterCustomPrograma(rowIdx)}
+                              />
                             ) : f.name === "programa_educativo" && customProgramaRows.has(rowIdx) ? (
                               <div className="space-y-1">
                                 <Input
@@ -597,7 +591,7 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
                                   placeholder="Escribe la carrera…"
                                   className="min-w-[140px]"
                                 />
-                                {programaSugerencias && programaSugerencias.length > 0 && (
+                                {gruposProgramaManual.length > 0 && (
                                   <button
                                     type="button"
                                     onClick={() => exitCustomPrograma(rowIdx)}
