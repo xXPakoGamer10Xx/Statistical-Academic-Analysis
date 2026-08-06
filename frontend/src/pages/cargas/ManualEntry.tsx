@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Save, ClipboardList } from "lucide-react";
 import { carrerasApi, ciclosApi, indicadoresApi, suggestionsApi, uploadsApi } from "@/api/endpoints";
 import { Button } from "@/components/ui/Button";
@@ -96,6 +96,7 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
   const [datasetType, setDatasetType] = useState("matricula");
   const [subsistemaId, setSubsistemaId] = useState<number | "">(fixedSubsistemaId ?? "");
 
+  const qc = useQueryClient();
   const def = useMemo(() => formats?.find((f) => f.key === datasetType), [formats, datasetType]);
   const isDocente = datasetType === "evaluacion_docente";
   const [rows, setRows] = useState<Row[]>([emptyRow(def)]);
@@ -350,6 +351,16 @@ export function ManualEntry({ formats, subsistemas, fixedSubsistemaId, isAdminGe
     },
     onSuccess: (res) => {
       onSuccess();
+      // "Matrícula actual en sistema" y el tope de "Madres solteras" leen la BD via estas
+      // queries propias (no las que invalida el padre en onSuccess()): sin esto, tras
+      // guardar siguen mostrando el valor cacheado de ANTES de la captura hasta que
+      // expira su staleTime o se recarga la pagina.
+      if (datasetType === "matricula") {
+        qc.invalidateQueries({ queryKey: ["matricula-periodo-actual"] });
+      }
+      if (datasetType === "becas") {
+        qc.invalidateQueries({ queryKey: ["matricula-mujeres"] });
+      }
       if (res.rows_failed === 0) setRows([isDocente ? emptyDocenteRow() : emptyRow(def)]);
     },
   });
