@@ -2,12 +2,12 @@
 
 Fórmulas (de la matriz institucional):
 - Matrícula = Matrícula Actual - Bajas por Reprobación - Bajas por Deserción + Nuevo Ingreso
+  + Otros Ingresos (ej. traslados, fuera de las categorías de Nuevo Ingreso)
 - Aprovechamiento = Promedio de Evaluaciones de cada PE / Número de PE
 - Reprobación = (Bajas por Reprobación * 100) / Matrícula Actual
 - Deserción = (Bajas por Deserción * 100) / Matrícula Actual
 - Eficiencia Terminal = (Estudiantes que concluyen estudios * 100) / Matrícula Generacional
 - Índice de Titulación = (Egresados que obtienen título * 100) / Estudiantes que concluyeron
-- Cobertura = Alumnos matriculados / Población en edad escolar
 - Abandono Escolar = % alumnos que dejan la escuela durante un ciclo
 - Absorción = Egresados de NMS / Estudiantes que ingresan al NS
 """
@@ -75,6 +75,7 @@ async def calcular_matricula(
                 r.bajas_reprobacion,
                 r.bajas_desercion,
                 r.nuevo_ingreso,
+                r.otros_ingresos or 0,
             ),
             nuevo_ingreso=r.nuevo_ingreso,
             hombres=r.hombres,
@@ -113,13 +114,14 @@ async def calcular_rendimiento(
     aprov_rows = (await db.execute(aprov_query)).all()
 
     # Reprobación y deserción se calculan desde matrícula. El denominador es la Matrícula
-    # Actual (total - bajas + nuevo_ingreso), no el "total" crudo (que es la base arrastrada
-    # del cuatrimestre anterior, previa al ajuste de ese mismo periodo).
+    # Actual (total - bajas + nuevo_ingreso + otros_ingresos), no el "total" crudo (que es
+    # la base arrastrada del cuatrimestre anterior, previa al ajuste de ese mismo periodo).
     mat_query = select(
         Matricula.ciclo_escolar,
         Matricula.programa_educativo,
         func.sum(
-            Matricula.total - Matricula.bajas_reprobacion - Matricula.bajas_desercion + Matricula.nuevo_ingreso
+            Matricula.total - Matricula.bajas_reprobacion - Matricula.bajas_desercion
+            + Matricula.nuevo_ingreso + func.coalesce(Matricula.otros_ingresos, 0)
         ).label("matricula_actual"),
         func.sum(Matricula.bajas_reprobacion).label("rep"),
         func.sum(Matricula.bajas_desercion).label("des"),
@@ -410,24 +412,16 @@ async def calcular_indicadores_opcionales(
         Matricula.ciclo_escolar,
         Matricula.programa_educativo,
         func.sum(
-            Matricula.total - Matricula.bajas_reprobacion - Matricula.bajas_desercion + Matricula.nuevo_ingreso
+            Matricula.total - Matricula.bajas_reprobacion - Matricula.bajas_desercion
+            + Matricula.nuevo_ingreso + func.coalesce(Matricula.otros_ingresos, 0)
         ).label("matricula_actual"),
         func.sum(Matricula.bajas_desercion).label("des"),
-        func.sum(Matricula.poblacion_edad_escolar).label("pob"),
         func.sum(Matricula.egresados_nms).label("egr_nms"),
         func.sum(Matricula.nuevo_ingreso).label("nuevo"),
     ).group_by(Matricula.ciclo_escolar, Matricula.programa_educativo)
     query = _apply_filters(query, Matricula, subsistema_id, ciclo_escolar)
     rows = (await db.execute(query)).all()
 
-    cobertura = [
-        IndicadorPorcentual(
-            ciclo_escolar=r.ciclo_escolar,
-            programa_educativo=r.programa_educativo,
-            valor=calculate_percentage(r.matricula_actual, r.pob),
-        )
-        for r in rows if r.pob
-    ]
     abandono = [
         IndicadorPorcentual(
             ciclo_escolar=r.ciclo_escolar,
@@ -444,6 +438,4 @@ async def calcular_indicadores_opcionales(
         )
         for r in rows if r.egr_nms
     ]
-    return IndicadoresOpcionales(
-        cobertura=cobertura, abandono_escolar=abandono, absorcion=absorcion
-    )
+    return IndicadoresOpcionales(abandono_escolar=abandono, absorcion=absorcion)

@@ -11,7 +11,7 @@ def _matricula_row(**overrides) -> dict:
         "bajas_desercion": 3,
         "hombres": 55,
         "mujeres": 45,
-        "poblacion_edad_escolar": 200,
+        "otros_ingresos": 200,
         "egresados_nms": 80,
     }
     base.update(overrides)

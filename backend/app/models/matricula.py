@@ -36,7 +36,12 @@ class Matricula(Base):
     bajas_desercion: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     hombres: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     mujeres: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    poblacion_edad_escolar: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Ingresos de alumnos fuera de las categorias de Nuevo Ingreso (examen/pase directo/
+    # RENOES/UAEM-GEM), ej. traslados: se suman directo a la Matricula Actual (ver
+    # calculate_matricula_actual). Antes se llamaba "poblacion_edad_escolar" y era un dato
+    # demografico no relacionado con matricula (denominador de Cobertura); ese indicador
+    # ya no existe.
+    otros_ingresos: Mapped[int | None] = mapped_column(Integer, nullable=True)
     egresados_nms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     uploaded_at: Mapped[datetime] = mapped_column(

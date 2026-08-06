@@ -88,7 +88,7 @@ def _upsert_rows(session: Session, dataset_type: str, rows: list[dict]) -> int:
             set_={c: stmt.excluded[c] for c in [
                 "total", "nuevo_ingreso", "ingreso_examen", "ingreso_pase_directo", "ingreso_renoes", "ingreso_uaem_gem",
                 "bajas_reprobacion", "bajas_desercion",
-                "hombres", "mujeres", "poblacion_edad_escolar", "egresados_nms",
+                "hombres", "mujeres", "otros_ingresos", "egresados_nms",
             ] if c in rows[0]},
         )
     elif dataset_type == "titulacion":
@@ -150,6 +150,7 @@ def _apply_db_validations(session: Session, dataset_type: str, rows: list[dict])
                     "bajas_reprobacion": previous_row.bajas_reprobacion,
                     "bajas_desercion": previous_row.bajas_desercion,
                     "nuevo_ingreso": previous_row.nuevo_ingreso,
+                    "otros_ingresos": previous_row.otros_ingresos,
                 }
                 if previous_row is not None
                 else None

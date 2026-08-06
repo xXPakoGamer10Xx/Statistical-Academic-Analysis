@@ -59,7 +59,6 @@ class EvaluacionDocenteResumen(BaseModel):
 
 
 class IndicadoresOpcionales(BaseModel):
-    cobertura: list[IndicadorPorcentual]
     abandono_escolar: list[IndicadorPorcentual]
     absorcion: list[IndicadorPorcentual]
 

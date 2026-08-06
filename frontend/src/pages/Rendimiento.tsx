@@ -41,7 +41,8 @@ export function Rendimiento() {
 
   // Indicadores opcionales — promediar por ciclo
   const ciclosOpc = Array.from(new Set([
-    ...(opcionales?.cobertura.map((x) => x.ciclo_escolar) ?? []),
+    ...(opcionales?.abandono_escolar.map((x) => x.ciclo_escolar) ?? []),
+    ...(opcionales?.absorcion.map((x) => x.ciclo_escolar) ?? []),
   ])).sort();
   const avgOpc = (arr: { ciclo_escolar: string; valor: number }[] | undefined) =>
     ciclosOpc.map((c) => {
@@ -120,12 +121,7 @@ export function Rendimiento() {
           {opcionales && (
             <div>
               <h2 className="mb-4 text-base font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Indicadores Opcionales</h2>
-              <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <KpiCard
-                  label="Cobertura"
-                  value={Number((opcionales.cobertura.reduce((s, x) => s + x.valor, 0) / (opcionales.cobertura.length || 1)).toFixed(1))}
-                  variant="blue"
-                />
+              <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <KpiCard
                   label="Abandono Escolar"
                   value={Number((opcionales.abandono_escolar.reduce((s, x) => s + x.valor, 0) / (opcionales.abandono_escolar.length || 1)).toFixed(1))}
@@ -137,17 +133,7 @@ export function Rendimiento() {
                   variant="green"
                 />
               </div>
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <Card>
-                  <CardHeader><CardTitle>Cobertura (%)</CardTitle></CardHeader>
-                  <CardContent>
-                    <BarChart
-                      categories={ciclosOpc}
-                      series={[{ name: "Cobertura", data: avgOpc(opcionales.cobertura), color: "#1d4ed8" }]}
-                      formatter="%"
-                    />
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Card>
                   <CardHeader><CardTitle>Abandono Escolar (%)</CardTitle></CardHeader>
                   <CardContent>

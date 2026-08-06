@@ -116,7 +116,10 @@ DATASET_DEFINITIONS: dict[DatasetType, DatasetDefinition] = {
             # llenan si vienen en un archivo Excel/CSV con esas columnas.
             DatasetField("hombres", "int", required=False),
             DatasetField("mujeres", "int", required=False),
-            DatasetField("poblacion_edad_escolar", "int", required=False),
+            DatasetField(
+                "otros_ingresos", "int", required=False,
+                description="Alumnos que se suman a la matricula fuera de Nuevo Ingreso (ej. traslados).",
+            ),
         ),
     ),
     "nuevo_ingreso": DatasetDefinition(

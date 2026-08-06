@@ -241,7 +241,6 @@ export interface FilterState {
 }
 
 export interface IndicadoresOpcionales {
-  cobertura: IndicadorPorcentual[];
   abandono_escolar: IndicadorPorcentual[];
   absorcion: IndicadorPorcentual[];
 }

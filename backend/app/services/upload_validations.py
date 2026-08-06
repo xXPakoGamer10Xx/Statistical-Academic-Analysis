@@ -165,7 +165,7 @@ def mujeres_keys_from_rows(rows: list[dict[str, Any]]) -> set[tuple[Any, Any, An
 # como la Matricula Actual ya calculada del periodo inmediatamente anterior de esa misma
 # carrera (0 si es la primera vez que se captura). Se materializa en vez de derivarse en cada
 # consulta porque "total" tambien se usa directamente (sumado) en calcular_rendimiento() y
-# calcular_indicadores_opcionales() (reprobacion/desercion/cobertura), no solo en
+# calcular_indicadores_opcionales() (reprobacion/desercion/abandono/absorcion), no solo en
 # calculate_matricula_actual().
 # ---------------------------------------------------------------------------
 
@@ -200,14 +200,15 @@ def matricula_carry_forward_lookups(
 def build_previous_matricula_stmt(
     subsistema_id: Any, programa_educativo: Any, ciclo_escolar: str, cuatrimestre: int
 ) -> Select:
-    """Statement con total/bajas/nuevo_ingreso de la fila de Matricula mas reciente,
-    estrictamente anterior a (ciclo_escolar, cuatrimestre), para esa carrera."""
+    """Statement con total/bajas/nuevo_ingreso/otros_ingresos de la fila de Matricula mas
+    reciente, estrictamente anterior a (ciclo_escolar, cuatrimestre), para esa carrera."""
     return (
         select(
             Matricula.total,
             Matricula.bajas_reprobacion,
             Matricula.bajas_desercion,
             Matricula.nuevo_ingreso,
+            Matricula.otros_ingresos,
         )
         .where(
             Matricula.subsistema_id == subsistema_id,
@@ -234,7 +235,9 @@ def apply_matricula_carry_forward(
       para ese periodo.
     - "total" = Matricula Actual del periodo anterior (0 si no existe periodo anterior) —
       se calcula siempre, para ambos datasets ("matricula" y "nuevo_ingreso" comparten la
-      misma fila por periodo/carrera), de forma determinista/idempotente.
+      misma fila por periodo/carrera), de forma determinista/idempotente. Incluye
+      "otros_ingresos" (alumnos que se suman fuera de las categorias de Nuevo Ingreso,
+      ej. traslados) cuando la fila lo trae.
 
     Modifica `rows` in-place agregando esas claves. `previous_by_key` trae, por grupo, los
     campos de la fila de BD inmediatamente anterior (o None si es la primera captura de esa
@@ -250,6 +253,7 @@ def apply_matricula_carry_forward(
                 previous["bajas_reprobacion"],
                 previous["bajas_desercion"],
                 previous["nuevo_ingreso"],
+                previous["otros_ingresos"] or 0,
             )
             if previous
             else 0
@@ -267,9 +271,11 @@ def apply_matricula_carry_forward(
             if has_ingreso_fields:
                 row["nuevo_ingreso"] = nuevo_ingreso
             row["total"] = last_known_total
+            otros_ingresos = int(row.get("otros_ingresos") or 0)
             last_known_total = calculate_matricula_actual(
                 last_known_total,
                 int(row.get("bajas_reprobacion") or 0),
                 int(row.get("bajas_desercion") or 0),
                 nuevo_ingreso,
+                otros_ingresos,
             )

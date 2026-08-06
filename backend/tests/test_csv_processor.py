@@ -6,7 +6,7 @@ from app.services.csv_processor import parse_and_validate, rows_from_dataframe
 def test_parse_and_validate_rejects_invalid_rows_and_keeps_valid_rows(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
+            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,otros_ingresos",
             "2025-2026,1,Ingenieria,5,3,55,45,200",
             "2025-2026,dos,Administracion,2,1,40,50,180",
         ]
@@ -31,7 +31,7 @@ def test_parse_and_validate_rejects_invalid_rows_and_keeps_valid_rows(tmp_path: 
 def test_parse_and_validate_rejects_negative_numbers(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
+            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,otros_ingresos",
             "2025-2026,1,Ingenieria,-100,3,55,45,200",
         ]
     )
@@ -79,7 +79,7 @@ def test_parse_and_validate_nuevo_ingreso_dataset(tmp_path: Path) -> None:
 def test_rows_from_dataframe_converts_nan_optional_ints_to_none(tmp_path: Path) -> None:
     csv_content = "\n".join(
         [
-            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,poblacion_edad_escolar",
+            "ciclo_escolar,cuatrimestre,programa_educativo,bajas_reprobacion,bajas_desercion,hombres,mujeres,otros_ingresos",
             "2025-2026,1,Ingenieria,5,3,55,45,300",
             "2025-2026,2,Administracion,2,1,40,50,",
         ]
@@ -92,8 +92,8 @@ def test_rows_from_dataframe_converts_nan_optional_ints_to_none(tmp_path: Path) 
 
     assert not errors
     assert len(rows) == 2
-    assert rows[0]["poblacion_edad_escolar"] == 300
-    assert rows[1]["poblacion_edad_escolar"] is None
+    assert rows[0]["otros_ingresos"] == 300
+    assert rows[1]["otros_ingresos"] is None
 
 
 def test_parse_and_validate_normalizes_allowed_values(tmp_path: Path) -> None:
