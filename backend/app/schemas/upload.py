@@ -63,13 +63,14 @@ class UploadJobOut(BaseModel):
     id: uuid.UUID
     subsistema_id: int
     dataset_type: str
-    filename: str
+    # Nulos en cargas historicas hechas por captura manual (no vienen de un archivo).
+    filename: str | None = None
     status: str
     rows_total: int
     rows_processed: int
     rows_failed: int
     file_size_bytes: int
-    file_sha256: str
+    file_sha256: str | None = None
     errors: list[dict] | None = None
     error_message: str | None = None
     created_at: datetime

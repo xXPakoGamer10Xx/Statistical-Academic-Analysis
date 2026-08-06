@@ -27,13 +27,13 @@ export interface UploadJob {
   id: string;
   subsistema_id: number;
   dataset_type: string;
-  filename: string;
+  filename: string | null;
   status: string;
   rows_total: number;
   rows_processed: number;
   rows_failed: number;
   file_size_bytes: number;
-  file_sha256: string;
+  file_sha256: string | null;
   errors: Array<Record<string, unknown>> | null;
   error_message: string | null;
   created_at: string;

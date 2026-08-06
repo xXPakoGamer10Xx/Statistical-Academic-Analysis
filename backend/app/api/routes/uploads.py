@@ -457,6 +457,7 @@ async def delete_job(job_id: uuid.UUID, _admin: SchoolAdminUser, db: DbDep) -> N
     job = result.scalar_one_or_none()
     if job is None:
         raise HTTPException(404, "Job no encontrado")
-    Path(job.file_path).unlink(missing_ok=True)
+    if job.file_path:
+        Path(job.file_path).unlink(missing_ok=True)
     await db.delete(job)
     await db.flush()

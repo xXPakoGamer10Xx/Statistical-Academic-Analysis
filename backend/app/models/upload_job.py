@@ -21,10 +21,11 @@ class UploadJob(Base):
         ForeignKey("subsistemas.id", ondelete="CASCADE"), nullable=False
     )
     dataset_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    file_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    # Nulos en cargas historicas hechas por captura manual (no vienen de un archivo).
+    filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    file_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    file_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", index=True)
     rows_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     rows_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -998,7 +998,7 @@ export function Cargas() {
                   <td className="py-4">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-slate-400" />
-                      <span className="truncate max-w-[150px] font-mono text-xs text-slate-600 dark:text-slate-400">{j.filename}</span>
+                      <span className="truncate max-w-[150px] font-mono text-xs text-slate-600 dark:text-slate-400">{j.filename ?? "Captura manual"}</span>
                     </div>
                   </td>
                   <td className="py-4 font-medium text-slate-600 dark:text-slate-400 capitalize">{j.dataset_type.replace("_", " ")}</td>
