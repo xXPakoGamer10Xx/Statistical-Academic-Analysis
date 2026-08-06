@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { NavLink, useNavigate, useLocation, useOutlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -92,6 +92,11 @@ export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  // Se resuelve aqui (no con <Outlet/> directo abajo) porque AnimatePresence conserva
+  // montado el motion.div saliente mientras anima su salida; si el hijo fuera <Outlet/>,
+  // este sigue suscrito al router y cambia a la ruta nueva a media animacion, dejando el
+  // contenido pegado en el estilo "exit" (opacity: 0) en vez de aparecer la pagina nueva.
+  const outlet = useOutlet();
   const navStyle = useUiPreferencesStore((s) => s.navStyle);
   const sidebarCollapsed = useUiPreferencesStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useUiPreferencesStore((s) => s.toggleSidebarCollapsed);
@@ -463,7 +468,7 @@ export function Layout() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="mx-auto w-full max-w-[2000px] p-4 md:p-6 lg:p-8"
             >
-              <Outlet />
+              {outlet}
             </motion.div>
           </AnimatePresence>
         </div>
