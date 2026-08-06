@@ -43,6 +43,7 @@ from app.services.upload_validations import (
     check_ciclo_catalog,
     check_madres_solteras,
     matricula_carry_forward_lookups,
+    matricula_conflict_set,
     mujeres_keys_from_rows,
 )
 from app.workers.tasks import CATEGORIA_BY_DATASET, DEDUP_KEYS, MODEL_BY_TYPE, process_csv_upload
@@ -341,11 +342,7 @@ def _build_upsert_stmt(dataset_type: str, rows: list[dict]):
     if dataset_type in ("matricula", "nuevo_ingreso"):
         stmt = stmt.on_conflict_do_update(
             constraint="uq_matricula_periodo",
-            set_={c: stmt.excluded[c] for c in [
-                "total", "nuevo_ingreso", "ingreso_examen", "ingreso_pase_directo", "ingreso_renoes", "ingreso_uaem_gem",
-                "bajas_reprobacion", "bajas_desercion",
-                "hombres", "mujeres", "otros_ingresos", "egresados_nms",
-            ] if c in rows[0]},
+            set_=matricula_conflict_set(stmt, rows),
         )
     elif dataset_type == "titulacion":
         stmt = stmt.on_conflict_do_update(

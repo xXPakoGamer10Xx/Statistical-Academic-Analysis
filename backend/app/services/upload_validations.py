@@ -10,10 +10,41 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy.dialects.postgresql import Insert
 
 from app.models.ciclo_generacional import CicloGeneracional
 from app.models.matricula import Matricula
 from app.services.formulas import calculate_matricula_actual
+
+# bajas_reprobacion/bajas_desercion/otros_ingresos: cada captura reporta las bajas u otros
+# ingresos NUEVOS detectados desde la ultima vez (no el total acumulado del periodo), asi
+# que en el upsert se SUMAN al valor ya guardado en vez de reemplazarlo (confirmado con el
+# usuario -- de lo contrario, corregir/agregar una captura previa exigiria volver a mandar
+# el total acumulado completo en vez de solo lo nuevo de esta vez). El resto de columnas de
+# matricula (total, nuevo_ingreso, hombres, etc.) son totales ya calculados por captura y
+# se reemplazan como siempre.
+MATRICULA_ADDITIVE_COLUMNS: frozenset[str] = frozenset({"bajas_reprobacion", "bajas_desercion", "otros_ingresos"})
+
+MATRICULA_UPSERT_COLUMNS: tuple[str, ...] = (
+    "total", "nuevo_ingreso", "ingreso_examen", "ingreso_pase_directo", "ingreso_renoes", "ingreso_uaem_gem",
+    "bajas_reprobacion", "bajas_desercion",
+    "hombres", "mujeres", "otros_ingresos", "egresados_nms",
+)
+
+
+def matricula_conflict_set(stmt: Insert, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """SET clause del ON CONFLICT DO UPDATE para `matricula`/`nuevo_ingreso` (upsert manual
+    y por archivo). Ver MATRICULA_ADDITIVE_COLUMNS para el porque de sumar en vez de
+    reemplazar esas 3 columnas especificas."""
+    set_: dict[str, Any] = {}
+    for column in MATRICULA_UPSERT_COLUMNS:
+        if column not in rows[0]:
+            continue
+        if column in MATRICULA_ADDITIVE_COLUMNS:
+            set_[column] = func.coalesce(Matricula.__table__.c[column], 0) + stmt.excluded[column]
+        else:
+            set_[column] = stmt.excluded[column]
+    return set_
 
 # Dataset -> campo que representa su "ciclo" para efectos del catalogo.
 CICLO_FIELD_BY_DATASET: dict[str, str] = {
