@@ -61,19 +61,26 @@ export function CarreraSelect({
         setIsOpen(false);
       }
     }
-    // El panel esta anclado por coordenadas fijas: si se hace scroll (de la pagina o de
-    // un contenedor con overflow, ej. la tabla) o cambia el tamano, se cierra en vez de
-    // quedar desalineado.
-    function handleScrollOrResize() {
+    // El panel esta anclado por coordenadas fijas: si se hace scroll de un ancestro (la
+    // pagina o un contenedor con overflow, ej. la tabla) o cambia el tamano, se cierra en
+    // vez de quedar desalineado. El scroll DENTRO del propio panel (su lista interna, que
+    // tiene overflow-y-auto) se ignora -- si no, nunca se podria deslizar la lista larga.
+    function handleScroll(event: Event) {
+      if (panelRef.current && event.target instanceof Node && panelRef.current.contains(event.target)) {
+        return;
+      }
+      setIsOpen(false);
+    }
+    function handleResize() {
       setIsOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("scroll", handleScrollOrResize, true);
-    window.addEventListener("resize", handleScrollOrResize);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", handleScrollOrResize, true);
-      window.removeEventListener("resize", handleScrollOrResize);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
     };
   }, [isOpen]);
 
